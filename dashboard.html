@@ -309,9 +309,11 @@ async function downloadReport() {
 
   let csv = "Table,Total,Status\n";
 
-  data.forEach(order => {
-    csv += ${order.table_number},${order.total_amount},${order.status}\n;
-  });
+data.forEach(function(order) {
+  csv += order.table_number + "," +
+         order.total_amount + "," +
+         order.status + "\n";
+});
 
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -335,9 +337,9 @@ supabaseClient
       event: "*",
       schema: "public",
       table: "orders",
-      filter: restaurant_id=eq.${restaurantId}
+      filter: "restaurant_id=eq." + restaurantId
     },
-    () => {
+    function () {
       console.log("Realtime Order Change");
       loadOrders();
     }
@@ -357,9 +359,9 @@ supabaseClient
       event: "*",
       schema: "public",
       table: "waiter_calls",
-      filter: restaurant_id=eq.${restaurantId}
+      filter: "restaurant_id=eq." + restaurantId
     },
-    () => {
+    function () {
       console.log("Realtime Waiter Change");
       loadWaiters();
     }
