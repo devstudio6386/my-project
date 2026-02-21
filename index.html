@@ -637,17 +637,21 @@
       visibility: visible;
     }
 
-    .modal {
-      background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(15, 52, 96, 0.95));
-      border: 1px solid var(--glass-border);
-      border-radius: var(--border-radius);
-      width: 100%;
-      max-width: 500px;
-      max-height: 80%;
-      overflow: hidden;
-      transform: scale(0.8) translateY(20px);
-      transition: var(--transition);
-    }
+   .modal {
+  background: linear-gradient(135deg, rgba(26,26,46,0.95), rgba(15,52,96,0.95));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  width: 100%;
+  max-width: 500px;
+
+  height: 80vh;              /* ADD THIS */
+  display: flex;             /* ADD THIS */
+  flex-direction: column;    /* ADD THIS */
+
+  overflow: hidden;
+  transform: scale(0.9) translateY(20px);
+  transition: var(--transition);
+}
 
     .modal-overlay.visible .modal {
       transform: scale(1) translateY(0);
@@ -688,11 +692,11 @@
       font-size: 1rem;
     }
 
-    .modal-body {
-      padding: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
+   .modal-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
 
     .cart-item {
       display: flex;
