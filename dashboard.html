@@ -119,12 +119,15 @@
 
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 🔐 AUTH CHECK
+
+// =====================
+// AUTH CHECK
+// =====================
+
 supabaseClient.auth.getSession().then(({ data }) => {
   if (!data.session) {
     window.location.href = "admin.html";
@@ -138,7 +141,7 @@ async function logout() {
 
 
 // =====================
-// ORDERS
+// LOAD ORDERS
 // =====================
 
 async function loadOrders() {
@@ -149,7 +152,7 @@ async function loadOrders() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Order Load Error:", error);
     return;
   }
 
@@ -177,7 +180,8 @@ async function loadOrders() {
 }
 
 async function updateOrder(id, status) {
-  await supabaseClient.from("orders")
+  await supabaseClient
+    .from("orders")
     .update({ status })
     .eq("id", id);
 
@@ -186,7 +190,7 @@ async function updateOrder(id, status) {
 
 
 // =====================
-// WAITER CALLS
+// LOAD WAITER CALLS
 // =====================
 
 async function loadWaiters() {
@@ -194,10 +198,10 @@ async function loadWaiters() {
     .from("waiter_calls")
     .select("*")
     .eq("restaurant_id", restaurantId)
-    .eq("status","pending");
+    .eq("status", "pending");
 
   if (error) {
-    console.error(error);
+    console.error("Waiter Load Error:", error);
     return;
   }
 
@@ -220,7 +224,8 @@ async function loadWaiters() {
 }
 
 async function serveWaiter(id) {
-  await supabaseClient.from("waiter_calls")
+  await supabaseClient
+    .from("waiter_calls")
     .update({ status: "served" })
     .eq("id", id);
 
@@ -233,10 +238,10 @@ async function serveWaiter(id) {
 // =====================
 
 async function addDish() {
-  const name = dishName.value.trim();
-  const price = dishPrice.value;
-  const image = dishImage.value.trim();
-  const category = dishCategory.value.trim();
+  const name = document.getElementById("dishName").value.trim();
+  const price = document.getElementById("dishPrice").value;
+  const image = document.getElementById("dishImage").value.trim();
+  const category = document.getElementById("dishCategory").value.trim();
 
   if (!name || !price) {
     alert("Name and Price required");
@@ -251,10 +256,10 @@ async function addDish() {
     category
   }]);
 
-  dishName.value = "";
-  dishPrice.value = "";
-  dishImage.value = "";
-  dishCategory.value = "";
+  document.getElementById("dishName").value = "";
+  document.getElementById("dishPrice").value = "";
+  document.getElementById("dishImage").value = "";
+  document.getElementById("dishCategory").value = "";
 
   loadDishes();
 }
@@ -266,7 +271,7 @@ async function loadDishes() {
     .eq("restaurant_id", restaurantId);
 
   if (error) {
-    console.error(error);
+    console.error("Dish Load Error:", error);
     return;
   }
 
@@ -290,7 +295,7 @@ async function deleteDish(id) {
 
 
 // =====================
-// REPORT DOWNLOAD
+// DOWNLOAD REPORT (FIXED)
 // =====================
 
 async function downloadReport() {
@@ -308,7 +313,7 @@ async function downloadReport() {
     csv += ${order.table_number},${order.total_amount},${order.status}\n;
   });
 
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -323,17 +328,17 @@ async function downloadReport() {
 // =====================
 
 supabaseClient
-  .channel('orders-channel')
+  .channel("orders-channel")
   .on(
-    'postgres_changes',
+    "postgres_changes",
     {
-      event: '*',
-      schema: 'public',
-      table: 'orders',
+      event: "*",
+      schema: "public",
+      table: "orders",
       filter: restaurant_id=eq.${restaurantId}
     },
-    (payload) => {
-      console.log("Realtime Order Change:", payload);
+    () => {
+      console.log("Realtime Order Change");
       loadOrders();
     }
   )
@@ -345,28 +350,31 @@ supabaseClient
 // =====================
 
 supabaseClient
-  .channel('waiter-channel')
+  .channel("waiter-channel")
   .on(
-    'postgres_changes',
+    "postgres_changes",
     {
-      event: '*',
-      schema: 'public',
-      table: 'waiter_calls',
+      event: "*",
+      schema: "public",
+      table: "waiter_calls",
       filter: restaurant_id=eq.${restaurantId}
     },
-    (payload) => {
-      console.log("Realtime Waiter Change:", payload);
+    () => {
+      console.log("Realtime Waiter Change");
       loadWaiters();
     }
   )
   .subscribe();
 
 
+// =====================
+// INITIAL LOAD
+// =====================
+
 loadOrders();
 loadWaiters();
 loadDishes();
 
 </script>
-
 </body>
 </html>
