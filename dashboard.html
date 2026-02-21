@@ -12,34 +12,29 @@
       background: linear-gradient(135deg, #1a1a2e, #0f3460);
       color: white;
     }
-
     .container {
       max-width: 1100px;
       margin: auto;
       padding: 20px;
     }
-
     h1 {
       background: linear-gradient(135deg, #ff4ecd, #4e9bff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
     .section {
       margin-top: 40px;
       background: rgba(255,255,255,0.05);
       padding: 25px;
       border-radius: 15px;
     }
-
     .card {
       background: rgba(255,255,255,0.08);
       padding: 15px;
       margin-bottom: 10px;
       border-radius: 10px;
     }
-
-    input, select {
+    input {
       width: 100%;
       padding: 12px;
       margin-bottom: 10px;
@@ -47,7 +42,6 @@
       border: none;
       font-size: 16px;
     }
-
     button {
       padding: 8px 14px;
       border: none;
@@ -57,27 +51,19 @@
       color: white;
       margin: 5px 5px 5px 0;
     }
-
-    button:hover {
-      opacity: 0.85;
-    }
-
+    button:hover { opacity: 0.85; }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 15px;
     }
-
     @media (max-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
+      .form-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 
 <body>
-
 <div class="container">
 
 <h1>Admin Dashboard</h1>
@@ -98,7 +84,7 @@
 
 <!-- ADD DISH -->
 <div class="section">
-  <h2>🍽 Add Dish</h2>
+  <h2>🍽 Add / Edit Dish</h2>
 
   <div class="form-grid">
     <input type="text" id="dishName" placeholder="Dish Name">
@@ -107,7 +93,7 @@
     <input type="text" id="dishCategory" placeholder="Category">
   </div>
 
-  <button onclick="addDish()">Add Dish</button>
+  <button onclick="addOrUpdateDish()">Save Dish</button>
 
   <h3>All Dishes</h3>
   <div id="dishList"></div>
@@ -122,16 +108,12 @@ const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let editingDishId = null;
 
-
-// =====================
-// AUTH CHECK
-// =====================
+/* ================= AUTH ================= */
 
 supabaseClient.auth.getSession().then(({ data }) => {
-  if (!data.session) {
-    window.location.href = "admin.html";
-  }
+  if (!data.session) window.location.href = "admin.html";
 });
 
 async function logout() {
@@ -139,10 +121,7 @@ async function logout() {
   window.location.href = "admin.html";
 }
 
-
-// =====================
-// LOAD ORDERS
-// =====================
+/* ================= LOAD ORDERS ================= */
 
 async function loadOrders() {
   const { data, error } = await supabaseClient
@@ -151,10 +130,7 @@ async function loadOrders() {
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Order Load Error:", error);
-    return;
-  }
+  if (error) return console.error(error);
 
   const container = document.getElementById("orders");
   container.innerHTML = "";
@@ -165,12 +141,27 @@ async function loadOrders() {
   }
 
   data.forEach(order => {
+
+    let itemsHTML = "No items";
+    if (order.items && Array.isArray(order.items)) {
+      itemsHTML = order.items.map(item =>
+        item.name + " x " + item.quantity +
+        " = ₹" + (item.price * item.quantity)
+      ).join("<br>");
+    }
+
     container.innerHTML += `
       <div class="card">
-        <b>Table:</b> ${order.table_number} |
-        <b>Total:</b> ₹${order.total_amount} |
-        <b>Status:</b> ${order.status}
-        <br>
+        <b>Table:</b> ${order.table_number}<br>
+        <b>Status:</b> ${order.status}<br>
+        <b>Payment:</b> ${order.payment_method || "N/A"}<br>
+        <b>Paid:</b> ${order.payment_status || "Pending"}<br><br>
+
+        <b>Items:</b><br>
+        ${itemsHTML}<br><br>
+
+        <b>Total:</b> ₹${order.total_amount}<br><br>
+
         <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
         <button onclick="updateOrder('${order.id}','served')">Served</button>
         <button onclick="updateOrder('${order.id}','completed')">Completed</button>
@@ -180,30 +171,20 @@ async function loadOrders() {
 }
 
 async function updateOrder(id, status) {
-  await supabaseClient
-    .from("orders")
+  await supabaseClient.from("orders")
     .update({ status })
     .eq("id", id);
-
   loadOrders();
 }
 
-
-// =====================
-// LOAD WAITER CALLS
-// =====================
+/* ================= WAITER ================= */
 
 async function loadWaiters() {
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("waiter_calls")
     .select("*")
     .eq("restaurant_id", restaurantId)
     .eq("status", "pending");
-
-  if (error) {
-    console.error("Waiter Load Error:", error);
-    return;
-  }
 
   const container = document.getElementById("waiters");
   container.innerHTML = "";
@@ -224,37 +205,32 @@ async function loadWaiters() {
 }
 
 async function serveWaiter(id) {
-  await supabaseClient
-    .from("waiter_calls")
+  await supabaseClient.from("waiter_calls")
     .update({ status: "served" })
     .eq("id", id);
-
   loadWaiters();
 }
 
+/* ================= DISH MANAGEMENT ================= */
 
-// =====================
-// DISH MANAGEMENT
-// =====================
+async function addOrUpdateDish() {
 
-async function addDish() {
   const name = document.getElementById("dishName").value.trim();
   const price = document.getElementById("dishPrice").value;
   const image = document.getElementById("dishImage").value.trim();
   const category = document.getElementById("dishCategory").value.trim();
 
-  if (!name || !price) {
-    alert("Name and Price required");
-    return;
-  }
+  if (!name || !price) return alert("Name & Price required");
 
-  await supabaseClient.from("dishes").insert([{
-    restaurant_id: restaurantId,
-    name,
-    price,
-    image,
-    category
-  }]);
+  if (editingDishId) {
+    await supabaseClient.from("dishes")
+      .update({ name, price, image, category })
+      .eq("id", editingDishId);
+    editingDishId = null;
+  } else {
+    await supabaseClient.from("dishes")
+      .insert([{ restaurant_id: restaurantId, name, price, image, category }]);
+  }
 
   document.getElementById("dishName").value = "";
   document.getElementById("dishPrice").value = "";
@@ -265,15 +241,10 @@ async function addDish() {
 }
 
 async function loadDishes() {
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("dishes")
     .select("*")
     .eq("restaurant_id", restaurantId);
-
-  if (error) {
-    console.error("Dish Load Error:", error);
-    return;
-  }
 
   const container = document.getElementById("dishList");
   container.innerHTML = "";
@@ -282,10 +253,19 @@ async function loadDishes() {
     container.innerHTML += `
       <div class="card">
         ${dish.name} - ₹${dish.price}
+        <button onclick="editDish('${dish.id}','${dish.name}',${dish.price},'${dish.image || ""}','${dish.category || ""}')">Edit</button>
         <button onclick="deleteDish('${dish.id}')">Delete</button>
       </div>
     `;
   });
+}
+
+function editDish(id, name, price, image, category) {
+  document.getElementById("dishName").value = name;
+  document.getElementById("dishPrice").value = price;
+  document.getElementById("dishImage").value = image;
+  document.getElementById("dishCategory").value = category;
+  editingDishId = id;
 }
 
 async function deleteDish(id) {
@@ -293,10 +273,7 @@ async function deleteDish(id) {
   loadDishes();
 }
 
-
-// =====================
-// DOWNLOAD REPORT (FIXED)
-// =====================
+/* ================= CSV REPORT ================= */
 
 async function downloadReport() {
   const today = new Date().toISOString().split("T")[0];
@@ -309,69 +286,43 @@ async function downloadReport() {
 
   let csv = "Table,Total,Status\n";
 
-data.forEach(function(order) {
-  csv += order.table_number + "," +
-         order.total_amount + "," +
-         order.status + "\n";
-});
+  data.forEach(order => {
+    csv += order.table_number + "," +
+           order.total_amount + "," +
+           order.status + "\n";
+  });
 
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = "today_orders.csv";
   a.click();
 }
 
+/* ================= REALTIME ================= */
 
-// =====================
-// REALTIME ORDERS
-// =====================
-
-supabaseClient
-  .channel("orders-channel")
-  .on(
-    "postgres_changes",
-    {
+supabaseClient.channel("orders-channel")
+  .on("postgres_changes", {
       event: "*",
       schema: "public",
       table: "orders",
       filter: "restaurant_id=eq." + restaurantId
     },
-    function () {
-      console.log("Realtime Order Change");
-      loadOrders();
-    }
-  )
-  .subscribe();
+    () => loadOrders()
+  ).subscribe();
 
-
-// =====================
-// REALTIME WAITER CALLS
-// =====================
-
-supabaseClient
-  .channel("waiter-channel")
-  .on(
-    "postgres_changes",
-    {
+supabaseClient.channel("waiter-channel")
+  .on("postgres_changes", {
       event: "*",
       schema: "public",
       table: "waiter_calls",
       filter: "restaurant_id=eq." + restaurantId
     },
-    function () {
-      console.log("Realtime Waiter Change");
-      loadWaiters();
-    }
-  )
-  .subscribe();
+    () => loadWaiters()
+  ).subscribe();
 
-
-// =====================
-// INITIAL LOAD
-// =====================
+/* ================= INIT ================= */
 
 loadOrders();
 loadWaiters();
