@@ -132,7 +132,7 @@ async function loadOrders() {
       itemsHTML = order.items.map(item => {
         const dish = dishes ? dishes.find(d => d.id == item.id) : null;
         if (!dish) return "Unknown item";
-       return '${dish.name} x ${item.quantity} = ₹${dish.price * item.quantity}';
+      return dish.name + " x " + item.quantity + " = ₹" + (dish.price * item.quantity);
       }).join("<br>");
     }
 
