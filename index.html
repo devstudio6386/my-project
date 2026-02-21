@@ -1133,47 +1133,52 @@ async function loadRestaurant() {
 }
      
 
-async function placeOrder() {
-  console.log("Button clicked");
+let isPlacingOrder = false;
 
-  if (cart.length === 0) {
-    alert("Cart is empty!");
+async function placeOrder() {
+
+  if (isPlacingOrder) {
+    console.log("Already placing order...");
     return;
   }
 
-  const totalAmount = cart.reduce((sum, item) => {
-    const dish = dishes.find(d => d.id === item.id);
-    return sum + (dish.price * item.quantity);
-  }, 0);
+  isPlacingOrder = true;
 
-  const { error } = await supabaseClient
-    .from("orders")
-    .insert([
-      {
+  try {
+
+    if (cart.length === 0) {
+      alert("Cart is empty!");
+      isPlacingOrder = false;
+      return;
+    }
+
+    const totalAmount = cart.reduce((sum, item) => {
+      const dish = dishes.find(d => d.id === item.id);
+      return sum + (dish.price * item.quantity);
+    }, 0);
+
+    const { error } = await supabaseClient
+      .from("orders")
+      .insert([{
         restaurant_id: restaurantId,
         table_number: tableNumber,
         items: cart,
         total_amount: totalAmount,
         status: "pending"
-      }
-    ]);
+      }]);
 
-  if (error) {
-    console.error(error);
-    alert("Order failed!");
-    return;
+    if (error) {
+      console.error(error);
+    }
+
+    cart = [];
+    updateCartUI();
+
+  } catch (err) {
+    console.error(err);
   }
 
-  // Success UI
-  cartModal.classList.remove('visible');
-  successPopup.classList.add('visible');
-
-  cart = [];
-  updateUI();
-
-  setTimeout(() => {
-    successPopup.classList.remove('visible');
-  }, 2500);
+  isPlacingOrder = false;
 }
 
     // Categories
