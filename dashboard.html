@@ -17,7 +17,9 @@ input{padding:6px;margin:4px}
 <h2>🍴 Dashboard</h2>
 
 <section>
-<h3>🛒 Orders</h3>
+<h3>🛒 Orders 
+<button onclick="downloadTodayReport()">Download Today Report</button>
+</h3>
 <div id="orders"></div>
 </section>
 
@@ -37,7 +39,6 @@ input{padding:6px;margin:4px}
 </section>
 
 <script>
-
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 const RESTAURANT_ID = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
@@ -48,156 +49,193 @@ let editingId = null;
 
 /* ================= ORDERS ================= */
 
-async function loadOrders(){
-  const {data,error} = await sb
+async function loadOrders() {
+  const { data: orders, error } = await sb
     .from("orders")
     .select("*")
-    .eq("restaurant_id",RESTAURANT_ID)
-    .order("created_at",{ascending:false});
-
-  console.log("Orders:",data,error);
+    .eq("restaurant_id", RESTAURANT_ID)
+    .order("created_at", { ascending: false });
 
   const box = document.getElementById("orders");
-  box.innerHTML="";
+  box.innerHTML = "";
 
-  if(!data || data.length===0){
-    box.innerHTML="No orders";
+  if (error || !orders || orders.length === 0) {
+    box.innerHTML = "No orders";
     return;
   }
 
-  data.forEach(o=>{
-    box.innerHTML+=`
-      <div class="card">
-        <b>Table ${o.table_number}</b><br>
-        Status: ${o.status}<br>
-        Total: ₹${o.total_amount}<br>
-        <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
-        <button onclick="updateStatus('${o.id}','served')">Served</button>
-        <button onclick="updateStatus('${o.id}','completed')">Completed</button>
-      </div>
-    `;
-  });
+  // 🔥 Fetch all dishes once (performance safe)
+  const { data: allDishes } = await sb
+    .from("dishes")
+    .select("id,name");
+
+  for (let i = 0; i < orders.length; i++) {
+    const o = orders[i];
+
+    let itemsHTML = "";
+
+    if (o.items && Array.isArray(o.items)) {
+      for (let j = 0; j < o.items.length; j++) {
+        const item = o.items[j];
+        const dish = allDishes.find(d => d.id === item.id);
+        if (dish) {
+          itemsHTML += dish.name + " × " + item.quantity + "<br>";
+        }
+      }
+    }
+
+    box.innerHTML +=
+      '<div class="card">' +
+      '<b>Table ' + o.table_number + '</b><br>' +
+      itemsHTML +
+      '<br>Status: ' + o.status +
+      '<br>Total: ₹' + o.total_amount +
+      '<br>' +
+      '<button onclick="updateStatus(\'' + o.id + '\',\'preparing\')">Preparing</button>' +
+      '<button onclick="updateStatus(\'' + o.id + '\',\'served\')">Served</button>' +
+      '<button onclick="updateStatus(\'' + o.id + '\',\'completed\')">Completed</button>' +
+      '</div>';
+  }
 }
 
-async function updateStatus(id,status){
-  await sb.from("orders").update({status}).eq("id",id);
+async function updateStatus(id, status) {
+  await sb.from("orders").update({ status: status }).eq("id", id);
   loadOrders();
+}
+
+/* ================= TODAY REPORT ================= */
+
+async function downloadTodayReport() {
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const { data: orders } = await sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .gte("created_at", today.toISOString());
+
+  if (!orders || orders.length === 0) {
+    alert("No orders today");
+    return;
+  }
+
+  let csv = "Table,Status,Total,Date\n";
+
+  for (let i = 0; i < orders.length; i++) {
+    const o = orders[i];
+    csv += o.table_number + "," +
+           o.status + "," +
+           o.total_amount + "," +
+           o.created_at + "\n";
+  }
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "today_orders.csv";
+  link.click();
 }
 
 /* ================= WAITER ================= */
 
-async function loadWaiters(){
-  const {data} = await sb
+async function loadWaiters() {
+  const { data } = await sb
     .from("waiter_calls")
     .select("*")
-    .eq("restaurant_id",RESTAURANT_ID)
-    .eq("status","pending");
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("status", "pending");
 
   const box = document.getElementById("waiters");
-  box.innerHTML="";
+  box.innerHTML = "";
 
-  if(!data || data.length===0){
-    box.innerHTML="No waiter calls";
+  if (!data || data.length === 0) {
+    box.innerHTML = "No waiter calls";
     return;
   }
 
-  data.forEach(w=>{
-    box.innerHTML+=`
-      <div class="card">
-        Table ${w.table_number}
-        <button onclick="doneWaiter('${w.id}')">Done</button>
-      </div>
-    `;
-  });
+  for (let i = 0; i < data.length; i++) {
+    const w = data[i];
+    box.innerHTML +=
+      '<div class="card">' +
+      'Table ' + w.table_number +
+      '<button onclick="doneWaiter(\'' + w.id + '\')">Done</button>' +
+      '</div>';
+  }
 }
 
-async function doneWaiter(id){
-  await sb.from("waiter_calls").update({status:"served"}).eq("id",id);
+async function doneWaiter(id) {
+  await sb.from("waiter_calls").update({ status: "served" }).eq("id", id);
   loadWaiters();
 }
 
 /* ================= DISHES ================= */
 
-async function loadDishes(){
-  const {data} = await sb
+async function loadDishes() {
+  const { data } = await sb
     .from("dishes")
     .select("*")
-    .eq("restaurant_id",RESTAURANT_ID);
+    .eq("restaurant_id", RESTAURANT_ID);
 
   const box = document.getElementById("dishes");
-  box.innerHTML="";
+  box.innerHTML = "";
 
-  if(!data) return;
+  if (!data) return;
 
-  data.forEach(d=>{
-    box.innerHTML+=`
-      <div class="card">
-        <b>${d.name}</b> ₹${d.price} (${d.category})
-        <button onclick="editDish('${d.id}')">Edit</button>
-        <button onclick="deleteDish('${d.id}')">Delete</button>
-      </div>
-    `;
-  });
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    box.innerHTML +=
+      '<div class="card">' +
+      '<b>' + d.name + '</b> ₹' + d.price +
+      '<button onclick="editDish(\'' + d.id + '\')">Edit</button>' +
+      '<button onclick="deleteDish(\'' + d.id + '\')">Delete</button>' +
+      '</div>';
+  }
 }
 
-function editDish(id){
-  sb.from("dishes").select("*").eq("id",id).single()
-  .then(({data})=>{
-    document.getElementById("name").value=data.name;
-    document.getElementById("price").value=data.price;
-    document.getElementById("category").value=data.category;
-    document.getElementById("image").value=data.image;
-    editingId=id;
-  });
+function editDish(id) {
+  sb.from("dishes").select("*").eq("id", id).single()
+    .then(function(res) {
+      const data = res.data;
+      document.getElementById("name").value = data.name;
+      document.getElementById("price").value = data.price;
+      document.getElementById("category").value = data.category;
+      document.getElementById("image").value = data.image;
+      editingId = id;
+    });
 }
 
-async function saveDish(){
-  const name=document.getElementById("name").value;
-  const price=parseFloat(document.getElementById("price").value);
-  const category=document.getElementById("category").value;
-  const image=document.getElementById("image").value;
+async function saveDish() {
+  const name = document.getElementById("name").value;
+  const price = parseFloat(document.getElementById("price").value);
+  const category = document.getElementById("category").value;
+  const image = document.getElementById("image").value;
 
-  if(!name || !price){
+  if (!name || isNaN(price)) {
     alert("Name & Price required");
     return;
   }
 
-  if(editingId){
+  if (editingId) {
     await sb.from("dishes")
-      .update({name,price,category,image})
-      .eq("id",editingId);
-    editingId=null;
-  }else{
+      .update({ name: name, price: price, category: category, image: image })
+      .eq("id", editingId);
+    editingId = null;
+  } else {
     await sb.from("dishes")
-      .insert([{restaurant_id:RESTAURANT_ID,name,price,category,image}]);
+      .insert([{ restaurant_id: RESTAURANT_ID, name: name, price: price, category: category, image: image }]);
   }
 
-  document.getElementById("name").value="";
-  document.getElementById("price").value="";
-  document.getElementById("category").value="";
-  document.getElementById("image").value="";
-
   loadDishes();
 }
 
-async function deleteDish(id){
-  await sb.from("dishes").delete().eq("id",id);
+async function deleteDish(id) {
+  await sb.from("dishes").delete().eq("id", id);
   loadDishes();
 }
 
-/* ================= REALTIME ================= */
-
-sb.channel("orders")
-  .on("postgres_changes",
-    {event:"*",schema:"public",table:"orders"},
-    ()=>loadOrders())
-  .subscribe();
-
-sb.channel("waiters")
-  .on("postgres_changes",
-    {event:"*",schema:"public",table:"waiter_calls"},
-    ()=>loadWaiters())
-  .subscribe();
+/* ================= INIT ================= */
 
 loadOrders();
 loadWaiters();
