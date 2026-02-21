@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Password</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ff4ecd, #4e9bff);
+    }
+
+    .box {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 40px;
+      border-radius: 20px;
+      width: 320px;
+      text-align: center;
+      color: white;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: white;
+      color: #ff4ecd;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Set New Password</h2>
+  <input type="password" id="newPassword" placeholder="Enter new password">
+  <button onclick="updatePassword()">Update Password</button>
+  <p id="message"></p>
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function updatePassword() {
+
+  const newPassword = document.getElementById("newPassword").value;
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) {
+    document.getElementById("message").innerText = "Error updating password";
+    return;
+  }
+
+  document.getElementById("message").innerText = "Password updated successfully!";
+  
+  setTimeout(() => {
+    window.location.href = "admin.html";
+  }, 2000);
+}
+
+</script>
+
+</body>
+</html>
