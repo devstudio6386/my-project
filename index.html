@@ -1139,8 +1139,8 @@ async function loadRestaurant() {
 
   restaurantId = data.id;
 
-await fetchDishes();
-loadCategories();
+;
+  fetchDishes();
 }
      
 
@@ -1577,14 +1577,18 @@ document.getElementById('waiter-confirm').addEventListener('click', async () => 
   }
 
   dishes = data;
-  renderDishes();
+
+// 🔥 Dynamic categories generate karo
+categories = ["All", ...new Set(dishes.map(d => d.category))];
+
+renderCategories();
+renderDishes();
 }
     // ============================================
     // INITIAL RENDER
     // ============================================
 
-    renderCategories();
-    loadRestaurant();
+    
 
 
 
