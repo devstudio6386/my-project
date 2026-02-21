@@ -1400,26 +1400,7 @@ console.log("cart:", cart);
       cartTotal.textContent = `₹${total}`;
     }
 
-    // Place order
-    function placeOrder() {
-      if (cart.length === 0) return;
-
-      // Close cart modal
-      cartModal.classList.remove('visible');
-
-      // Show success popup
-      successPopup.classList.add('visible');
-
-      // Clear cart
-      cart = [];
-      updateUI();
-
-      // Hide success popup after 2.5 seconds
-      setTimeout(() => {
-        successPopup.classList.remove('visible');
-      }, 2500);
-    }
-
+   
     // ============================================
     // EVENT LISTENERS
     // ============================================
