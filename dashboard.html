@@ -69,20 +69,17 @@
 <h1>Admin Dashboard</h1>
 <button onclick="logout()">Logout</button>
 
-<!-- ORDERS -->
 <div class="section">
   <h2>🛒 Orders</h2>
   <div id="orders"></div>
   <button onclick="downloadReport()">Download Today Report</button>
 </div>
 
-<!-- WAITER CALLS -->
 <div class="section">
   <h2>🔔 Waiter Calls</h2>
   <div id="waiters"></div>
 </div>
 
-<!-- ADD DISH -->
 <div class="section">
   <h2>🍽 Add / Edit Dish</h2>
 
@@ -124,6 +121,7 @@ async function logout() {
 /* ================= LOAD ORDERS ================= */
 
 async function loadOrders() {
+
   const { data, error } = await supabaseClient
     .from("orders")
     .select("*")
@@ -140,14 +138,28 @@ async function loadOrders() {
     return;
   }
 
-  data.forEach(order => {
+  for (const order of data) {
 
     let itemsHTML = "No items";
+
     if (order.items && Array.isArray(order.items)) {
-      itemsHTML = order.items.map(item =>
-        item.name + " x " + item.quantity +
-        " = ₹" + (item.price * item.quantity)
-      ).join("<br>");
+
+      const dishIds = order.items.map(i => i.id);
+
+      const { data: dishes } = await supabaseClient
+        .from("dishes")
+        .select("id,name,price")
+        .in("id", dishIds);
+
+      itemsHTML = order.items.map(item => {
+
+        const dish = dishes.find(d => d.id == item.id);
+        if (!dish) return "Unknown item";
+
+        return dish.name + " x " + item.quantity +
+               " = ₹" + (dish.price * item.quantity);
+
+      }).join("<br>");
     }
 
     container.innerHTML += `
@@ -167,7 +179,7 @@ async function loadOrders() {
         <button onclick="updateOrder('${order.id}','completed')">Completed</button>
       </div>
     `;
-  });
+  }
 }
 
 async function updateOrder(id, status) {
@@ -194,14 +206,14 @@ async function loadWaiters() {
     return;
   }
 
-  data.forEach(call => {
+  for (const call of data) {
     container.innerHTML += `
       <div class="card">
         Table ${call.table_number}
         <button onclick="serveWaiter('${call.id}')">Mark Served</button>
       </div>
     `;
-  });
+  }
 }
 
 async function serveWaiter(id) {
@@ -211,7 +223,7 @@ async function serveWaiter(id) {
   loadWaiters();
 }
 
-/* ================= DISH MANAGEMENT ================= */
+/* ================= DISH ================= */
 
 async function addOrUpdateDish() {
 
@@ -249,7 +261,7 @@ async function loadDishes() {
   const container = document.getElementById("dishList");
   container.innerHTML = "";
 
-  data.forEach(dish => {
+  for (const dish of data) {
     container.innerHTML += `
       <div class="card">
         ${dish.name} - ₹${dish.price}
@@ -257,7 +269,7 @@ async function loadDishes() {
         <button onclick="deleteDish('${dish.id}')">Delete</button>
       </div>
     `;
-  });
+  }
 }
 
 function editDish(id, name, price, image, category) {
@@ -272,55 +284,6 @@ async function deleteDish(id) {
   await supabaseClient.from("dishes").delete().eq("id", id);
   loadDishes();
 }
-
-/* ================= CSV REPORT ================= */
-
-async function downloadReport() {
-  const today = new Date().toISOString().split("T")[0];
-
-  const { data } = await supabaseClient
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", restaurantId)
-    .gte("created_at", today);
-
-  let csv = "Table,Total,Status\n";
-
-  data.forEach(order => {
-    csv += order.table_number + "," +
-           order.total_amount + "," +
-           order.status + "\n";
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "today_orders.csv";
-  a.click();
-}
-
-/* ================= REALTIME ================= */
-
-supabaseClient.channel("orders-channel")
-  .on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "orders",
-      filter: "restaurant_id=eq." + restaurantId
-    },
-    () => loadOrders()
-  ).subscribe();
-
-supabaseClient.channel("waiter-channel")
-  .on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "waiter_calls",
-      filter: "restaurant_id=eq." + restaurantId
-    },
-    () => loadWaiters()
-  ).subscribe();
 
 /* ================= INIT ================= */
 
