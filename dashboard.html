@@ -142,11 +142,16 @@ async function logout() {
 // =====================
 
 async function loadOrders() {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("orders")
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
 
   const container = document.getElementById("orders");
   container.innerHTML = "";
@@ -185,11 +190,16 @@ async function updateOrder(id, status) {
 // =====================
 
 async function loadWaiters() {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("waiter_calls")
     .select("*")
     .eq("restaurant_id", restaurantId)
     .eq("status","pending");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
 
   const container = document.getElementById("waiters");
   container.innerHTML = "";
@@ -250,10 +260,15 @@ async function addDish() {
 }
 
 async function loadDishes() {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("dishes")
     .select("*")
     .eq("restaurant_id", restaurantId);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
 
   const container = document.getElementById("dishList");
   container.innerHTML = "";
@@ -304,13 +319,48 @@ async function downloadReport() {
 
 
 // =====================
-// AUTO REFRESH
+// REALTIME ORDERS
 // =====================
 
-setInterval(() => {
-  loadOrders();
-  loadWaiters();
-}, 5000);
+supabaseClient
+  .channel('orders-channel')
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'orders',
+      filter: restaurant_id=eq.${restaurantId}
+    },
+    (payload) => {
+      console.log("Realtime Order Change:", payload);
+      loadOrders();
+    }
+  )
+  .subscribe();
+
+
+// =====================
+// REALTIME WAITER CALLS
+// =====================
+
+supabaseClient
+  .channel('waiter-channel')
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'waiter_calls',
+      filter: restaurant_id=eq.${restaurantId}
+    },
+    (payload) => {
+      console.log("Realtime Waiter Change:", payload);
+      loadWaiters();
+    }
+  )
+  .subscribe();
+
 
 loadOrders();
 loadWaiters();
