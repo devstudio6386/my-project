@@ -1577,18 +1577,14 @@ document.getElementById('waiter-confirm').addEventListener('click', async () => 
   }
 
   dishes = data;
-
-// 🔥 Dynamic categories generate karo
-categories = ["All", ...new Set(dishes.map(d => d.category))];
-
-renderCategories();
-renderDishes();
+  renderDishes();
 }
     // ============================================
     // INITIAL RENDER
     // ============================================
 
-    
+    renderCategories();
+    loadRestaurant();
 
 
 
