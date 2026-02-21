@@ -151,15 +151,19 @@ async function loadOrders() {
 
     let statusButtons = "";
 
-    if (order.status !== "completed") {
-      statusButtons = `
-        <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
-        <button onclick="updateOrder('${order.id}','served')">Served</button>
-        <button onclick="updateOrder('${order.id}','completed')">Completed</button>
-      `;
-    } else {
-      statusButtons = <span class="completed-badge">Completed</span>;
-    }
+if (order.status !== "completed") {
+
+  statusButtons = `
+    <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
+    <button onclick="updateOrder('${order.id}','served')">Served</button>
+    <button onclick="updateOrder('${order.id}','completed')">Completed</button>
+  `;
+
+} else {
+
+  statusButtons = <span class="completed-badge">Completed</span>;
+
+}
 
     container.innerHTML += `
       <div class="card">
