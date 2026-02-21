@@ -3,204 +3,421 @@
 <head>
   <title>Restaurant Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+      color: white;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      background: linear-gradient(135deg, #ff4ecd, #4e9bff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+      margin-bottom: 5px;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section {
+      margin-top: 40px;
+      background: rgba(255,255,255,0.05);
+      padding: 25px;
+      border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .section h2 {
+      margin-top: 0;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.08);
+      padding: 15px 20px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      line-height: 1.8;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      outline: none;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    input::placeholder { color: rgba(255,255,255,0.4); }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff4ecd, #c050ff);
+      color: white;
+      margin: 4px 6px 4px 0;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover { opacity: 0.85; transform: scale(1.03); }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.15);
+    }
+
+    .btn-preparing { background: linear-gradient(135deg, #f6a821, #f07e27); }
+    .btn-served    { background: linear-gradient(135deg, #4e9bff, #3a6bff); }
+    .btn-completed { background: linear-gradient(135deg, #2ecc71, #1a9c55); }
+    .btn-delete    { background: linear-gradient(135deg, #ff4e4e, #c0392b); }
+    .btn-edit      { background: linear-gradient(135deg, #4e9bff, #3a6bff); }
+    .btn-waiter    { background: linear-gradient(135deg, #2ecc71, #1a9c55); }
+    .btn-save      { background: linear-gradient(135deg, #ff4ecd, #4e9bff); font-size: 15px; padding: 10px 22px; }
+
+    .completed-badge {
+      display: inline-block;
+      background: #2ecc71;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .status-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.1);
+      text-transform: capitalize;
+    }
+
+    .empty-msg { color: rgba(255,255,255,0.4); font-style: italic; }
+  </style>
 </head>
+
 <body>
+<div class="container">
 
-<h1>Admin Dashboard</h1>
+  <div class="header-row">
+    <h1>🍴 Admin Dashboard</h1>
+    <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+  </div>
 
-<div>
-  <h2>Orders</h2>
-  <div id="orders">Loading...</div>
+  <div class="section">
+    <h2>🛒 Orders</h2>
+    <div id="orders"><p class="empty-msg">Loading orders...</p></div>
+  </div>
+
+  <div class="section">
+    <h2>🔔 Waiter Calls</h2>
+    <div id="waiters"><p class="empty-msg">Loading waiter calls...</p></div>
+  </div>
+
+  <div class="section">
+    <h2>🍽 Add / Edit Dish</h2>
+    <input type="text"   id="dishName"     placeholder="Dish Name">
+    <input type="number" id="dishPrice"    placeholder="Price (₹)">
+    <input type="text"   id="dishImage"    placeholder="Image URL">
+    <input type="text"   id="dishCategory" placeholder="Category">
+    <button class="btn-save" onclick="addOrUpdateDish()">💾 Save Dish</button>
+    <h3>All Dishes</h3>
+    <div id="dishList"><p class="empty-msg">Loading dishes...</p></div>
+  </div>
+
 </div>
-
-<div>
-  <h2>Waiter Calls</h2>
-  <div id="waiters">Loading...</div>
-</div>
-
-<div>
-  <h2>Add / Edit Dish</h2>
-  <input id="dishName" placeholder="Name"><br><br>
-  <input id="dishPrice" type="number" placeholder="Price"><br><br>
-  <input id="dishImage" placeholder="Image URL"><br><br>
-  <input id="dishCategory" placeholder="Category"><br><br>
-  <button onclick="addOrUpdateDish()">Save Dish</button>
-
-  <h3>All Dishes</h3>
-  <div id="dishList">Loading...</div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
-const SUPABASE_ANON_KEY = "PASTE_REAL_ANON_KEY_HERE"; // MUST replace
-const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  /* ========== CONFIG ========== */
 
-let editingDishId = null;
-let dishCache = [];
+  const SUPABASE_URL     = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 
-/* ================== ORDERS ================== */
-async function loadOrders() {
+  // ✅ BUG FIX #2 — Replace below with your real Supabase anon key from:
+  //    Supabase Dashboard → Project Settings → API → anon public
+  //    It starts with "eyJ..."
+  const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 
-  const { data, error } = await sb
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", restaurantId)
-    .order("created_at", { ascending: false });
+  const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
-  if (error) {
-    document.getElementById("orders").innerHTML =
-      <p style="color:red">Error: ${error.message}</p>;
-    return;
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let editingDishId = null;
+
+  /* ========== AUTH ========== */
+
+  sb.auth.getSession().then(({ data }) => {
+    if (!data.session) window.location.href = "admin.html";
+  });
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = "admin.html";
   }
 
-  if (!data.length) {
-    document.getElementById("orders").innerHTML = "No Orders Yet";
-    return;
+  /* ========== ORDERS ========== */
+
+  async function loadOrders() {
+
+    const { data, error } = await sb
+      .from("orders")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Orders error:", error);
+      document.getElementById("orders").innerHTML = <p style="color:salmon">Error loading orders: ${error.message}</p>;
+      return;
+    }
+
+    const container = document.getElementById("orders");
+    container.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      container.innerHTML = <p class="empty-msg">No orders yet</p>;
+      return;
+    }
+
+    for (const order of data) {
+
+      let itemsHTML = "No items";
+
+      if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+
+        const dishIds = order.items.map(i => i.id);
+
+        const { data: dishes } = await sb
+          .from("dishes")
+          .select("id, name, price")
+          .in("id", dishIds);
+
+        itemsHTML = order.items.map(item => {
+          const dish = dishes ? dishes.find(d => d.id === item.id) : null;
+          if (!dish) return <span style="color:salmon">Unknown item (id: ${item.id})</span>;
+          return '${dish.name} &times; ${item.quantity} = ₹${(dish.price * item.quantity).toFixed(2)}';
+        }).join("<br>");
+      }
+
+      // ✅ BUG FIX #1 — Added backtick template literal (was bare HTML before)
+      let statusButtons = "";
+      if (order.status !== "completed") {
+        statusButtons = `
+          <button class="btn-preparing" onclick="updateOrder('${order.id}','preparing')">🔥 Preparing</button>
+          <button class="btn-served"    onclick="updateOrder('${order.id}','served')">🍽 Served</button>
+          <button class="btn-completed" onclick="updateOrder('${order.id}','completed')">✅ Completed</button>
+        `;
+      } else {
+        statusButtons = <span class="completed-badge">✅ Completed</span>;
+      }
+
+      container.innerHTML += `
+        <div class="card">
+          <b>Table:</b> ${order.table_number} &nbsp;
+          <b>Status:</b> <span class="status-tag">${order.status}</span><br>
+          <b>Payment:</b> ${order.payment_method || "N/A"} &nbsp;
+          <b>Paid:</b> ${order.payment_status || "Pending"}<br><br>
+          <b>Items:</b><br>${itemsHTML}<br><br>
+          <b>Total:</b> ₹${order.total_amount}<br><br>
+          ${statusButtons}
+        </div>
+      `;
+    }
   }
 
-  let html = "";
-
-  for (let order of data) {
-
-    html += `
-      <div style="border:1px solid #ccc;padding:10px;margin:10px 0">
-        <b>Table:</b> ${order.table_number}<br>
-        <b>Status:</b> ${order.status}<br>
-        <b>Total:</b> ₹${order.total_amount}<br><br>
-
-        <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
-        <button onclick="updateOrder('${order.id}','served')">Served</button>
-        <button onclick="updateOrder('${order.id}','completed')">Completed</button>
-      </div>
-    `;
+  async function updateOrder(id, status) {
+    const { error } = await sb.from("orders").update({ status }).eq("id", id);
+    if (error) console.error("Update order error:", error);
+    loadOrders();
   }
 
-  document.getElementById("orders").innerHTML = html;
-}
+  /* ========== WAITER CALLS ========== */
 
-async function updateOrder(id, status) {
-  await sb.from("orders").update({ status }).eq("id", id);
+  async function loadWaiters() {
+
+    const { data, error } = await sb
+      .from("waiter_calls")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "pending");
+
+    if (error) {
+      console.error("Waiter calls error:", error);
+      return;
+    }
+
+    const container = document.getElementById("waiters");
+    container.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      container.innerHTML = <p class="empty-msg">No pending waiter calls</p>;
+      return;
+    }
+
+    for (const call of data) {
+      container.innerHTML += `
+        <div class="card">
+          🔔 <b>Table ${call.table_number}</b> is calling for a waiter
+          <button class="btn-waiter" onclick="serveWaiter('${call.id}')">✔ Mark Served</button>
+        </div>
+      `;
+    }
+  }
+
+  async function serveWaiter(id) {
+    const { error } = await sb.from("waiter_calls").update({ status: "served" }).eq("id", id);
+    if (error) console.error("Waiter update error:", error);
+    loadWaiters();
+  }
+
+  /* ========== DISHES ========== */
+
+  async function addOrUpdateDish() {
+
+    const name     = document.getElementById("dishName").value.trim();
+    const price    = document.getElementById("dishPrice").value;
+    const image    = document.getElementById("dishImage").value.trim();
+    const category = document.getElementById("dishCategory").value.trim();
+
+    if (!name || !price) {
+      alert("Dish Name & Price are required!");
+      return;
+    }
+
+    let error;
+
+    if (editingDishId) {
+      ({ error } = await sb.from("dishes")
+        .update({ name, price: parseFloat(price), image, category })
+        .eq("id", editingDishId));
+      editingDishId = null;
+    } else {
+      ({ error } = await sb.from("dishes")
+        .insert([{ restaurant_id: restaurantId, name, price: parseFloat(price), image, category }]));
+    }
+
+    if (error) {
+      alert("Error saving dish: " + error.message);
+      console.error(error);
+      return;
+    }
+
+    document.getElementById("dishName").value     = "";
+    document.getElementById("dishPrice").value    = "";
+    document.getElementById("dishImage").value    = "";
+    document.getElementById("dishCategory").value = "";
+
+    loadDishes();
+  }
+
+  async function loadDishes() {
+
+    const { data, error } = await sb
+      .from("dishes")
+      .select("*")
+      .eq("restaurant_id", restaurantId);
+
+    if (error) {
+      console.error("Dishes error:", error);
+      return;
+    }
+
+    const container = document.getElementById("dishList");
+    container.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      container.innerHTML = <p class="empty-msg">No dishes added yet</p>;
+      return;
+    }
+
+    for (const dish of data) {
+      container.innerHTML += `
+        <div class="card">
+          <b>${dish.name}</b> — ₹${dish.price}
+          ${dish.category ? <span style="opacity:0.5;font-size:12px"> (${dish.category})</span> : ""}
+          <br>
+          <button class="btn-edit"   onclick="editDish('${dish.id}')">✏ Edit</button>
+          <button class="btn-delete" onclick="deleteDish('${dish.id}')">🗑 Delete</button>
+        </div>
+      `;
+    }
+
+    // Store dishes globally so editDish can find them
+    window._dishCache = data;
+  }
+
+  // ✅ Safer editDish — no inline string escaping issues
+  function editDish(id) {
+    const dish = (window._dishCache || []).find(d => d.id === id);
+    if (!dish) return;
+    document.getElementById("dishName").value     = dish.name;
+    document.getElementById("dishPrice").value    = dish.price;
+    document.getElementById("dishImage").value    = dish.image || "";
+    document.getElementById("dishCategory").value = dish.category || "";
+    editingDishId = id;
+    window.scrollTo({ top: document.querySelector('.section:last-child').offsetTop - 20, behavior: 'smooth' });
+  }
+
+  async function deleteDish(id) {
+    if (!confirm("Delete this dish?")) return;
+    const { error } = await sb.from("dishes").delete().eq("id", id);
+    if (error) console.error("Delete dish error:", error);
+    loadDishes();
+  }
+
+  /* ========== REALTIME ========== */
+
+  sb.channel("orders-channel")
+    .on("postgres_changes", {
+      event: "*", schema: "public", table: "orders",
+      filter: "restaurant_id=eq." + restaurantId
+    }, () => loadOrders())
+    .subscribe();
+
+  sb.channel("waiter-channel")
+    .on("postgres_changes", {
+      event: "*", schema: "public", table: "waiter_calls",
+      filter: "restaurant_id=eq." + restaurantId
+    }, () => loadWaiters())
+    .subscribe();
+
+  /* Backup auto-refresh every 5s */
+  setInterval(() => { loadOrders(); loadWaiters(); }, 5000);
+
+  /* Initial load */
   loadOrders();
-}
-
-/* ================== WAITER ================== */
-async function loadWaiters() {
-
-  const { data } = await sb
-    .from("waiter_calls")
-    .select("*")
-    .eq("restaurant_id", restaurantId)
-    .eq("status", "pending");
-
-  if (!data.length) {
-    document.getElementById("waiters").innerHTML = "No Waiter Calls";
-    return;
-  }
-
-  let html = "";
-
-  for (let call of data) {
-    html += `
-      <div style="border:1px solid #ccc;padding:10px;margin:10px 0">
-        Table ${call.table_number} is calling
-        <button onclick="serveWaiter('${call.id}')">Mark Served</button>
-      </div>
-    `;
-  }
-
-  document.getElementById("waiters").innerHTML = html;
-}
-
-async function serveWaiter(id) {
-  await sb.from("waiter_calls").update({ status: "served" }).eq("id", id);
   loadWaiters();
-}
-
-/* ================== DISHES ================== */
-async function loadDishes() {
-
-  const { data } = await sb
-    .from("dishes")
-    .select("*")
-    .eq("restaurant_id", restaurantId);
-
-  dishCache = data;
-
-  if (!data.length) {
-    document.getElementById("dishList").innerHTML = "No dishes";
-    return;
-  }
-
-  let html = "";
-
-  for (let dish of data) {
-    html += `
-      <div style="border:1px solid #ccc;padding:10px;margin:10px 0">
-        ${dish.name} - ₹${dish.price}
-        <button onclick="editDish('${dish.id}')">Edit</button>
-        <button onclick="deleteDish('${dish.id}')">Delete</button>
-      </div>
-    `;
-  }
-
-  document.getElementById("dishList").innerHTML = html;
-}
-
-function editDish(id) {
-  const dish = dishCache.find(d => d.id === id);
-  document.getElementById("dishName").value = dish.name;
-  document.getElementById("dishPrice").value = dish.price;
-  document.getElementById("dishImage").value = dish.image || "";
-  document.getElementById("dishCategory").value = dish.category || "";
-  editingDishId = id;
-}
-
-async function addOrUpdateDish() {
-
-  const name = dishName.value.trim();
-  const price = parseFloat(dishPrice.value);
-  const image = dishImage.value.trim();
-  const category = dishCategory.value.trim();
-
-  if (!name || !price) {
-    alert("Name & Price required");
-    return;
-  }
-
-  if (editingDishId) {
-    await sb.from("dishes")
-      .update({ name, price, image, category })
-      .eq("id", editingDishId);
-    editingDishId = null;
-  } else {
-    await sb.from("dishes")
-      .insert([{ restaurant_id: restaurantId, name, price, image, category }]);
-  }
-
-  dishName.value = "";
-  dishPrice.value = "";
-  dishImage.value = "";
-  dishCategory.value = "";
-
   loadDishes();
-}
-
-async function deleteDish(id) {
-  await sb.from("dishes").delete().eq("id", id);
-  loadDishes();
-}
-
-/* INIT */
-loadOrders();
-loadWaiters();
-loadDishes();
-setInterval(() => {
-  loadOrders();
-  loadWaiters();
-}, 5000);
 
 </script>
 </body>
