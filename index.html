@@ -1124,7 +1124,9 @@ async function loadRestaurant() {
 
 async function placeOrder() {
     console.log("Button clicked");
-
+console.log("restaurantId:", restaurantId);
+console.log("tableNumber:", tableNumber);
+console.log("cart:", cart);
   if (cart.length === 0) {
     alert("Cart is empty!");
     return;
