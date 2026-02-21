@@ -8,7 +8,7 @@
   <style>
     body {
       margin: 0;
-      font-family: Poppins, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #1a1a2e, #0f3460);
       color: white;
     }
@@ -16,6 +16,11 @@
       max-width: 1100px;
       margin: auto;
       padding: 20px;
+    }
+    h1 {
+      background: linear-gradient(135deg, #ff4ecd, #4e9bff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     .section {
       margin-top: 40px;
@@ -29,6 +34,14 @@
       margin-bottom: 10px;
       border-radius: 10px;
     }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
     button {
       padding: 8px 14px;
       border: none;
@@ -38,19 +51,10 @@
       color: white;
       margin: 5px 5px 5px 0;
     }
-    button:hover {
-      opacity: 0.85;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      border: none;
-    }
+    button:hover { opacity: 0.85; }
     .completed-badge {
       background: green;
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 6px;
     }
   </style>
@@ -60,6 +64,7 @@
 <div class="container">
 
 <h1>Admin Dashboard</h1>
+<button onclick="logout()">Logout</button>
 
 <div class="section">
   <h2>🛒 Orders</h2>
@@ -73,11 +78,12 @@
 
 <div class="section">
   <h2>🍽 Add / Edit Dish</h2>
-  <input id="dishName" placeholder="Dish Name">
-  <input id="dishPrice" type="number" placeholder="Price">
-  <input id="dishImage" placeholder="Image URL">
-  <input id="dishCategory" placeholder="Category">
+  <input type="text" id="dishName" placeholder="Dish Name">
+  <input type="number" id="dishPrice" placeholder="Price">
+  <input type="text" id="dishImage" placeholder="Image URL">
+  <input type="text" id="dishCategory" placeholder="Category">
   <button onclick="addOrUpdateDish()">Save Dish</button>
+  <h3>All Dishes</h3>
   <div id="dishList"></div>
 </div>
 
@@ -90,8 +96,18 @@ const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 let editingDishId = null;
+
+/* ================= AUTH ================= */
+
+supabaseClient.auth.getSession().then(({ data }) => {
+  if (!data.session) window.location.href = "admin.html";
+});
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "admin.html";
+}
 
 /* ================= LOAD ORDERS ================= */
 
@@ -103,10 +119,7 @@ async function loadOrders() {
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if (error) return console.error(error);
 
   const container = document.getElementById("orders");
   container.innerHTML = "";
@@ -129,60 +142,53 @@ async function loadOrders() {
         .select("id,name,price")
         .in("id", dishIds);
 
-      itemsHTML = order.items.map(item => {
+      itemsHTML = order.items.map(function(item) {
         const dish = dishes ? dishes.find(d => d.id == item.id) : null;
         if (!dish) return "Unknown item";
-      return dish.name + " x " + item.quantity + " = ₹" + (dish.price * item.quantity);
+        return dish.name + " x " + item.quantity + " = ₹" + (dish.price * item.quantity);
       }).join("<br>");
     }
 
-    let buttonsHTML = "";
+    let statusButtons = "";
 
     if (order.status !== "completed") {
-      buttonsHTML = `
+      statusButtons = `
         <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
         <button onclick="updateOrder('${order.id}','served')">Served</button>
         <button onclick="updateOrder('${order.id}','completed')">Completed</button>
       `;
     } else {
-      buttonsHTML = <span class="completed-badge">Completed</span>;
+      statusButtons = <span class="completed-badge">Completed</span>;
     }
 
     container.innerHTML += `
       <div class="card">
         <b>Table:</b> ${order.table_number}<br>
-        <b>Status:</b> ${order.status}<br><br>
+        <b>Status:</b> ${order.status}<br>
+        <b>Payment:</b> ${order.payment_method || "N/A"}<br>
+        <b>Paid:</b> ${order.payment_status || "Pending"}<br><br>
         <b>Items:</b><br>${itemsHTML}<br><br>
         <b>Total:</b> ₹${order.total_amount}<br><br>
-        ${buttonsHTML}
+        ${statusButtons}
       </div>
     `;
   }
 }
 
 async function updateOrder(id, status) {
-  await supabaseClient
-    .from("orders")
-    .update({ status: status })
-    .eq("id", id);
-
+  await supabaseClient.from("orders").update({ status }).eq("id", id);
   loadOrders();
 }
 
-/* ================= LOAD WAITER ================= */
+/* ================= WAITER ================= */
 
 async function loadWaiters() {
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("waiter_calls")
     .select("*")
     .eq("restaurant_id", restaurantId)
     .eq("status", "pending");
-
-  if (error) {
-    console.error(error);
-    return;
-  }
 
   const container = document.getElementById("waiters");
   container.innerHTML = "";
@@ -203,11 +209,7 @@ async function loadWaiters() {
 }
 
 async function serveWaiter(id) {
-  await supabaseClient
-    .from("waiter_calls")
-    .update({ status: "served" })
-    .eq("id", id);
-
+  await supabaseClient.from("waiter_calls").update({ status: "served" }).eq("id", id);
   loadWaiters();
 }
 
@@ -215,48 +217,37 @@ async function serveWaiter(id) {
 
 async function addOrUpdateDish() {
 
-  const name = document.getElementById("dishName").value.trim();
-  const price = document.getElementById("dishPrice").value;
-  const image = document.getElementById("dishImage").value.trim();
-  const category = document.getElementById("dishCategory").value.trim();
+  const name = dishName.value.trim();
+  const price = dishPrice.value;
+  const image = dishImage.value.trim();
+  const category = dishCategory.value.trim();
 
-  if (!name || !price) {
-    alert("Name & Price required");
-    return;
-  }
+  if (!name || !price) return alert("Name & Price required");
 
   if (editingDishId) {
-    await supabaseClient
-      .from("dishes")
+    await supabaseClient.from("dishes")
       .update({ name, price, image, category })
       .eq("id", editingDishId);
-
     editingDishId = null;
   } else {
-    await supabaseClient
-      .from("dishes")
+    await supabaseClient.from("dishes")
       .insert([{ restaurant_id: restaurantId, name, price, image, category }]);
   }
 
-  document.getElementById("dishName").value = "";
-  document.getElementById("dishPrice").value = "";
-  document.getElementById("dishImage").value = "";
-  document.getElementById("dishCategory").value = "";
+  dishName.value = "";
+  dishPrice.value = "";
+  dishImage.value = "";
+  dishCategory.value = "";
 
   loadDishes();
 }
 
 async function loadDishes() {
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("dishes")
     .select("*")
     .eq("restaurant_id", restaurantId);
-
-  if (error) {
-    console.error(error);
-    return;
-  }
 
   const container = document.getElementById("dishList");
   container.innerHTML = "";
@@ -278,23 +269,19 @@ async function loadDishes() {
 }
 
 function editDish(id, name, price, image, category) {
-  document.getElementById("dishName").value = name;
-  document.getElementById("dishPrice").value = price;
-  document.getElementById("dishImage").value = image;
-  document.getElementById("dishCategory").value = category;
+  dishName.value = name;
+  dishPrice.value = price;
+  dishImage.value = image;
+  dishCategory.value = category;
   editingDishId = id;
 }
 
 async function deleteDish(id) {
-  await supabaseClient
-    .from("dishes")
-    .delete()
-    .eq("id", id);
-
+  await supabaseClient.from("dishes").delete().eq("id", id);
   loadDishes();
 }
 
-/* ================= REALTIME + AUTO REFRESH ================= */
+/* ================= REALTIME ================= */
 
 supabaseClient.channel("orders-channel")
   .on("postgres_changes", {
@@ -302,9 +289,8 @@ supabaseClient.channel("orders-channel")
     schema: "public",
     table: "orders",
     filter: "restaurant_id=eq." + restaurantId
-  }, () => {
-    loadOrders();
-  }).subscribe();
+  }, () => loadOrders())
+  .subscribe();
 
 supabaseClient.channel("waiter-channel")
   .on("postgres_changes", {
@@ -312,11 +298,10 @@ supabaseClient.channel("waiter-channel")
     schema: "public",
     table: "waiter_calls",
     filter: "restaurant_id=eq." + restaurantId
-  }, () => {
-    loadWaiters();
-  }).subscribe();
+  }, () => loadWaiters())
+  .subscribe();
 
-/* Backup auto refresh every 5 sec */
+/* Backup auto refresh */
 setInterval(() => {
   loadOrders();
   loadWaiters();
