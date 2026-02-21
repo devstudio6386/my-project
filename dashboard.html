@@ -1,335 +1,469 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Restaurant Admin Dashboard</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>Admin Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #1a1a2e, #0f3460);
-      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #fff;
       min-height: 100vh;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: auto;
-      padding: 20px;
+    header {
+      background: linear-gradient(90deg, #1a1a2e, #16213e);
+      padding: 18px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #ff4ecd33;
     }
 
-    h1 {
+    header h1 {
+      font-size: 1.5rem;
       background: linear-gradient(135deg, #ff4ecd, #4e9bff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      font-size: 2rem;
-      margin-bottom: 5px;
     }
 
-    .header-row {
+    .logout-btn {
+      background: rgba(255,78,205,0.15);
+      border: 1px solid #ff4ecd55;
+      color: #ff4ecd;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .logout-btn:hover { background: rgba(255,78,205,0.3); }
+
+    .main {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      flex-direction: column;
+      gap: 30px;
     }
 
     .section {
-      margin-top: 40px;
-      background: rgba(255,255,255,0.05);
-      padding: 25px;
-      border-radius: 15px;
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #1a1a2e;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      overflow: hidden;
     }
 
-    .section h2 {
-      margin-top: 0;
+    .section-header {
+      padding: 18px 24px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 1.1rem;
+      font-weight: 600;
     }
 
-    .card {
-      background: rgba(255,255,255,0.08);
-      padding: 15px 20px;
+    .section-body { padding: 20px 24px; }
+
+    /* ---- ORDER CARD ---- */
+    .order-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .order-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.06);
-      line-height: 1.8;
     }
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      border: none;
-      font-size: 15px;
-      background: rgba(255,255,255,0.1);
-      color: white;
-      outline: none;
-      font-family: 'Poppins', sans-serif;
+    .table-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #4e9bff;
     }
 
-    input::placeholder { color: rgba(255,255,255,0.4); }
-
-    button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: linear-gradient(135deg, #ff4ecd, #c050ff);
-      color: white;
-      margin: 4px 6px 4px 0;
-      font-family: 'Poppins', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-
-    button:hover { opacity: 0.85; transform: scale(1.03); }
-
-    .btn-logout {
-      background: rgba(255,255,255,0.15);
-    }
-
-    .btn-preparing { background: linear-gradient(135deg, #f6a821, #f07e27); }
-    .btn-served    { background: linear-gradient(135deg, #4e9bff, #3a6bff); }
-    .btn-completed { background: linear-gradient(135deg, #2ecc71, #1a9c55); }
-    .btn-delete    { background: linear-gradient(135deg, #ff4e4e, #c0392b); }
-    .btn-edit      { background: linear-gradient(135deg, #4e9bff, #3a6bff); }
-    .btn-waiter    { background: linear-gradient(135deg, #2ecc71, #1a9c55); }
-    .btn-save      { background: linear-gradient(135deg, #ff4ecd, #4e9bff); font-size: 15px; padding: 10px 22px; }
-
-    .completed-badge {
-      display: inline-block;
-      background: #2ecc71;
-      padding: 5px 14px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    .status-tag {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 5px;
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
-      background: rgba(255,255,255,0.1);
       text-transform: capitalize;
     }
 
-    .empty-msg { color: rgba(255,255,255,0.4); font-style: italic; }
+    .status-pending   { background: #ff4e4e33; color: #ff4e4e; border: 1px solid #ff4e4e55; }
+    .status-preparing { background: #f6a82133; color: #f6a821; border: 1px solid #f6a82155; }
+    .status-served    { background: #4e9bff33; color: #4e9bff; border: 1px solid #4e9bff55; }
+    .status-completed { background: #2ecc7133; color: #2ecc71; border: 1px solid #2ecc7155; }
+
+    .order-items {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 0;
+      margin-bottom: 12px;
+    }
+
+    .order-item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .order-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ff4ecd;
+      margin-bottom: 14px;
+    }
+
+    .status-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .sbtn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .sbtn:hover { opacity: 0.8; transform: scale(1.04); }
+
+    .sbtn-preparing { background: #f6a821; color: #000; }
+    .sbtn-served    { background: #4e9bff; color: #fff; }
+    .sbtn-completed { background: #2ecc71; color: #000; }
+
+    /* ---- WAITER CARD ---- */
+    .waiter-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+
+    .waiter-label { font-size: 15px; }
+    .waiter-label span { color: #4e9bff; font-weight: 700; }
+    .sbtn-done { background: #2ecc71; color: #000; }
+
+    /* ---- DISH FORM ---- */
+    .dish-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .dish-form input {
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .dish-form input:focus { border-color: #ff4ecd88; }
+    .dish-form input::placeholder { color: rgba(255,255,255,0.35); }
+    .dish-form .full { grid-column: 1 / -1; }
+
+    .save-btn {
+      background: linear-gradient(135deg, #ff4ecd, #4e9bff);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .save-btn:hover { opacity: 0.85; }
+
+    /* ---- DISH LIST ---- */
+    .dish-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    .dish-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .dish-img {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+
+    .dish-info { flex: 1; }
+    .dish-name { font-weight: 700; font-size: 15px; }
+    .dish-meta { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+    .dish-price { font-size: 15px; font-weight: 700; color: #2ecc71; margin-right: 10px; white-space: nowrap; }
+
+    .dish-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .sbtn-edit   { background: #4e9bff33; color: #4e9bff; border: 1px solid #4e9bff55; }
+    .sbtn-delete { background: #ff4e4e22; color: #ff4e4e; border: 1px solid #ff4e4e44; }
+
+    .empty { color: rgba(255,255,255,0.3); font-size: 14px; padding: 6px 0; }
   </style>
 </head>
-
 <body>
-<div class="container">
 
-  <div class="header-row">
-    <h1>🍴 Admin Dashboard</h1>
-    <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+<header>
+  <h1>🍴 Admin Dashboard</h1>
+  <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+</header>
+
+<div class="main">
+
+  <!-- ORDERS -->
+  <div class="section">
+    <div class="section-header">🛒 Orders</div>
+    <div class="section-body" id="orders"><p class="empty">Loading orders...</p></div>
   </div>
 
+  <!-- WAITER CALLS -->
   <div class="section">
-    <h2>🛒 Orders</h2>
-    <div id="orders"><p class="empty-msg">Loading orders...</p></div>
+    <div class="section-header">🔔 Waiter Calls</div>
+    <div class="section-body" id="waiters"><p class="empty">Loading...</p></div>
   </div>
 
+  <!-- DISH MANAGER -->
   <div class="section">
-    <h2>🔔 Waiter Calls</h2>
-    <div id="waiters"><p class="empty-msg">Loading waiter calls...</p></div>
-  </div>
-
-  <div class="section">
-    <h2>🍽 Add / Edit Dish</h2>
-    <input type="text"   id="dishName"     placeholder="Dish Name">
-    <input type="number" id="dishPrice"    placeholder="Price (₹)">
-    <input type="text"   id="dishImage"    placeholder="Image URL">
-    <input type="text"   id="dishCategory" placeholder="Category">
-    <button class="btn-save" onclick="addOrUpdateDish()">💾 Save Dish</button>
-    <h3>All Dishes</h3>
-    <div id="dishList"><p class="empty-msg">Loading dishes...</p></div>
+    <div class="section-header">🍽 Dish Manager</div>
+    <div class="section-body">
+      <div class="dish-form">
+        <input type="text"   id="dishName"     placeholder="Dish Name">
+        <input type="number" id="dishPrice"    placeholder="Price (₹)">
+        <input type="text"   id="dishImage"    placeholder="Image URL" class="full">
+        <input type="text"   id="dishCategory" placeholder="Category (Starter, Main, Dessert...)" class="full">
+      </div>
+      <button class="save-btn" onclick="saveDish()">💾 Save Dish</button>
+      <div class="dish-list" id="dishList"></div>
+    </div>
   </div>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-
-  /* ========== CONFIG ========== */
-
-  const SUPABASE_URL     = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
-
-  // ✅ BUG FIX #2 — Replace below with your real Supabase anon key from:
-  //    Supabase Dashboard → Project Settings → API → anon public
-  //    It starts with "eyJ..."
+  /* =====================================================
+     ⚠️  ZAROORI: Neeche apni Supabase key daalo
+     Milegi: supabase.com → Project → Settings → API → anon public
+     Key "eyJ..." se start hogi
+  ===================================================== */
+  const SUPABASE_URL      = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
-
-  const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
+  const RESTAURANT_ID     = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let editingDishId = null;
+  let dishCache = [];
 
-  /* ========== AUTH ========== */
-
+  /* ---------- AUTH ---------- */
   sb.auth.getSession().then(({ data }) => {
     if (!data.session) window.location.href = "admin.html";
   });
 
-  async function logout() {
-    await sb.auth.signOut();
-    window.location.href = "admin.html";
+  function logout() {
+    sb.auth.signOut().then(() => window.location.href = "admin.html");
   }
 
   /* ========== ORDERS ========== */
-
   async function loadOrders() {
-
-    const { data, error } = await sb
+    const { data: orders, error } = await sb
       .from("orders")
       .select("*")
-      .eq("restaurant_id", restaurantId)
+      .eq("restaurant_id", RESTAURANT_ID)
       .order("created_at", { ascending: false });
 
+    const box = document.getElementById("orders");
+
     if (error) {
-      console.error("Orders error:", error);
-      document.getElementById("orders").innerHTML = <p style="color:salmon">Error loading orders: ${error.message}</p>;
+      box.innerHTML = <p class="empty" style="color:salmon">Error: ${error.message}</p>;
       return;
     }
 
-    const container = document.getElementById("orders");
-    container.innerHTML = "";
-
-    if (!data || data.length === 0) {
-      container.innerHTML = <p class="empty-msg">No orders yet</p>;
+    if (!orders || orders.length === 0) {
+      box.innerHTML = <p class="empty">Abhi koi order nahi</p>;
       return;
     }
 
-    for (const order of data) {
+    box.innerHTML = "";
 
-      let itemsHTML = "No items";
+    for (const order of orders) {
+      let itemRows = "";
 
       if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+        const ids = order.items.map(i => i.id);
+        const { data: dishes } = await sb.from("dishes").select("id,name,price").in("id", ids);
 
-        const dishIds = order.items.map(i => i.id);
-
-        const { data: dishes } = await sb
-          .from("dishes")
-          .select("id, name, price")
-          .in("id", dishIds);
-
-        itemsHTML = order.items.map(item => {
-          const dish = dishes ? dishes.find(d => d.id === item.id) : null;
-          if (!dish) return <span style="color:salmon">Unknown item (id: ${item.id})</span>;
-          return '${dish.name} &times; ${item.quantity} = ₹${(dish.price * item.quantity).toFixed(2)}';
-        }).join("<br>");
+        itemRows = order.items.map(item => {
+          const dish    = dishes ? dishes.find(d => d.id === item.id) : null;
+          const name    = dish ? dish.name  : "Unknown Item";
+          const price   = dish ? dish.price : 0;
+          const sub     = (price * item.quantity).toFixed(2);
+          return <div class="order-item-row"><span>${name} &times; ${item.quantity}</span><span>&#8377;${sub}</span></div>;
+        }).join("");
       }
 
-      // ✅ BUG FIX #1 — Added backtick template literal (was bare HTML before)
-      let statusButtons = "";
+      const badgeClass = "status-" + (order.status || "pending");
+
+      // Buttons sirf tab tak dikhenge jab tak completed nahi hota
+      let buttons = "";
       if (order.status !== "completed") {
-        statusButtons = `
-          <button class="btn-preparing" onclick="updateOrder('${order.id}','preparing')">🔥 Preparing</button>
-          <button class="btn-served"    onclick="updateOrder('${order.id}','served')">🍽 Served</button>
-          <button class="btn-completed" onclick="updateOrder('${order.id}','completed')">✅ Completed</button>
+        buttons = `
+          <div class="status-buttons">
+            <button class="sbtn sbtn-preparing" onclick="setStatus('${order.id}','preparing')">&#128293; Preparing</button>
+            <button class="sbtn sbtn-served"    onclick="setStatus('${order.id}','served')">&#127869; Served</button>
+            <button class="sbtn sbtn-completed" onclick="setStatus('${order.id}','completed')">&#10003; Completed</button>
+          </div>
         `;
-      } else {
-        statusButtons = <span class="completed-badge">✅ Completed</span>;
       }
 
-      container.innerHTML += `
-        <div class="card">
-          <b>Table:</b> ${order.table_number} &nbsp;
-          <b>Status:</b> <span class="status-tag">${order.status}</span><br>
-          <b>Payment:</b> ${order.payment_method || "N/A"} &nbsp;
-          <b>Paid:</b> ${order.payment_status || "Pending"}<br><br>
-          <b>Items:</b><br>${itemsHTML}<br><br>
-          <b>Total:</b> ₹${order.total_amount}<br><br>
-          ${statusButtons}
+      box.innerHTML += `
+        <div class="order-card">
+          <div class="order-top">
+            <span class="table-label">Table ${order.table_number}</span>
+            <span class="status-badge ${badgeClass}">${order.status || "pending"}</span>
+          </div>
+          <div class="order-items">
+            ${itemRows || '<div class="order-item-row"><span>No items</span></div>'}
+          </div>
+          <div class="order-total">Total: &#8377;${order.total_amount || 0}</div>
+          ${buttons}
         </div>
       `;
     }
   }
 
-  async function updateOrder(id, status) {
-    const { error } = await sb.from("orders").update({ status }).eq("id", id);
-    if (error) console.error("Update order error:", error);
+  async function setStatus(orderId, status) {
+    await sb.from("orders").update({ status }).eq("id", orderId);
     loadOrders();
   }
 
   /* ========== WAITER CALLS ========== */
-
   async function loadWaiters() {
-
-    const { data, error } = await sb
+    const { data } = await sb
       .from("waiter_calls")
       .select("*")
-      .eq("restaurant_id", restaurantId)
+      .eq("restaurant_id", RESTAURANT_ID)
       .eq("status", "pending");
 
-    if (error) {
-      console.error("Waiter calls error:", error);
-      return;
-    }
-
-    const container = document.getElementById("waiters");
-    container.innerHTML = "";
+    const box = document.getElementById("waiters");
 
     if (!data || data.length === 0) {
-      container.innerHTML = <p class="empty-msg">No pending waiter calls</p>;
+      box.innerHTML = <p class="empty">Koi waiter call nahi</p>;
       return;
     }
 
+    box.innerHTML = "";
     for (const call of data) {
-      container.innerHTML += `
-        <div class="card">
-          🔔 <b>Table ${call.table_number}</b> is calling for a waiter
-          <button class="btn-waiter" onclick="serveWaiter('${call.id}')">✔ Mark Served</button>
+      box.innerHTML += `
+        <div class="waiter-card">
+          <div class="waiter-label">&#128276; <span>Table ${call.table_number}</span> ne waiter bulaya</div>
+          <button class="sbtn sbtn-done" onclick="doneWaiter('${call.id}')">&#10004; Done</button>
         </div>
       `;
     }
   }
 
-  async function serveWaiter(id) {
-    const { error } = await sb.from("waiter_calls").update({ status: "served" }).eq("id", id);
-    if (error) console.error("Waiter update error:", error);
+  async function doneWaiter(id) {
+    await sb.from("waiter_calls").update({ status: "served" }).eq("id", id);
     loadWaiters();
   }
 
   /* ========== DISHES ========== */
+  async function loadDishes() {
+    const { data } = await sb
+      .from("dishes")
+      .select("*")
+      .eq("restaurant_id", RESTAURANT_ID)
+      .order("created_at", { ascending: false });
 
-  async function addOrUpdateDish() {
+    dishCache = data || [];
+    const box = document.getElementById("dishList");
+    box.innerHTML = "";
 
+    if (!data || data.length === 0) {
+      box.innerHTML = <p class="empty">Koi dish nahi add ki abhi tak</p>;
+      return;
+    }
+
+    for (const dish of data) {
+      const imgTag = dish.image
+        ? <img src="${dish.image}" class="dish-img" onerror="this.style.display='none'">
+        : <div class="dish-img"></div>;
+
+      box.innerHTML += `
+        <div class="dish-card">
+          ${imgTag}
+          <div class="dish-info">
+            <div class="dish-name">${dish.name}</div>
+            <div class="dish-meta">${dish.category || "No category"}</div>
+          </div>
+          <div class="dish-price">&#8377;${dish.price}</div>
+          <div class="dish-actions">
+            <button class="sbtn sbtn-edit"   onclick="editDish('${dish.id}')">&#9998; Edit</button>
+            <button class="sbtn sbtn-delete" onclick="deleteDish('${dish.id}')">&#128465;</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function editDish(id) {
+    const dish = dishCache.find(d => d.id === id);
+    if (!dish) return;
+    document.getElementById("dishName").value     = dish.name     || "";
+    document.getElementById("dishPrice").value    = dish.price    || "";
+    document.getElementById("dishImage").value    = dish.image    || "";
+    document.getElementById("dishCategory").value = dish.category || "";
+    editingDishId = id;
+    document.getElementById("dishName").focus();
+    window.scrollTo({ top: document.querySelector(".section:last-child").offsetTop - 20, behavior: "smooth" });
+  }
+
+  async function saveDish() {
     const name     = document.getElementById("dishName").value.trim();
-    const price    = document.getElementById("dishPrice").value;
+    const price    = parseFloat(document.getElementById("dishPrice").value);
     const image    = document.getElementById("dishImage").value.trim();
     const category = document.getElementById("dishCategory").value.trim();
 
-    if (!name || !price) {
-      alert("Dish Name & Price are required!");
-      return;
-    }
-
-    let error;
+    if (!name || !price) { alert("Name aur Price zaroori hai!"); return; }
 
     if (editingDishId) {
-      ({ error } = await sb.from("dishes")
-        .update({ name, price: parseFloat(price), image, category })
-        .eq("id", editingDishId));
+      await sb.from("dishes").update({ name, price, image, category }).eq("id", editingDishId);
       editingDishId = null;
     } else {
-      ({ error } = await sb.from("dishes")
-        .insert([{ restaurant_id: restaurantId, name, price: parseFloat(price), image, category }]));
-    }
-
-    if (error) {
-      alert("Error saving dish: " + error.message);
-      console.error(error);
-      return;
+      await sb.from("dishes").insert([{ restaurant_id: RESTAURANT_ID, name, price, image, category }]);
     }
 
     document.getElementById("dishName").value     = "";
@@ -340,85 +474,28 @@
     loadDishes();
   }
 
-  async function loadDishes() {
-
-    const { data, error } = await sb
-      .from("dishes")
-      .select("*")
-      .eq("restaurant_id", restaurantId);
-
-    if (error) {
-      console.error("Dishes error:", error);
-      return;
-    }
-
-    const container = document.getElementById("dishList");
-    container.innerHTML = "";
-
-    if (!data || data.length === 0) {
-      container.innerHTML = <p class="empty-msg">No dishes added yet</p>;
-      return;
-    }
-
-    for (const dish of data) {
-      container.innerHTML += `
-        <div class="card">
-          <b>${dish.name}</b> — ₹${dish.price}
-          ${dish.category ? <span style="opacity:0.5;font-size:12px"> (${dish.category})</span> : ""}
-          <br>
-          <button class="btn-edit"   onclick="editDish('${dish.id}')">✏ Edit</button>
-          <button class="btn-delete" onclick="deleteDish('${dish.id}')">🗑 Delete</button>
-        </div>
-      `;
-    }
-
-    // Store dishes globally so editDish can find them
-    window._dishCache = data;
-  }
-
-  // ✅ Safer editDish — no inline string escaping issues
-  function editDish(id) {
-    const dish = (window._dishCache || []).find(d => d.id === id);
-    if (!dish) return;
-    document.getElementById("dishName").value     = dish.name;
-    document.getElementById("dishPrice").value    = dish.price;
-    document.getElementById("dishImage").value    = dish.image || "";
-    document.getElementById("dishCategory").value = dish.category || "";
-    editingDishId = id;
-    window.scrollTo({ top: document.querySelector('.section:last-child').offsetTop - 20, behavior: 'smooth' });
-  }
-
   async function deleteDish(id) {
-    if (!confirm("Delete this dish?")) return;
-    const { error } = await sb.from("dishes").delete().eq("id", id);
-    if (error) console.error("Delete dish error:", error);
+    if (!confirm("Yeh dish delete karo?")) return;
+    await sb.from("dishes").delete().eq("id", id);
     loadDishes();
   }
 
   /* ========== REALTIME ========== */
-
-  sb.channel("orders-channel")
-    .on("postgres_changes", {
-      event: "*", schema: "public", table: "orders",
-      filter: "restaurant_id=eq." + restaurantId
-    }, () => loadOrders())
+  sb.channel("rt-orders")
+    .on("postgres_changes", { event: "*", schema: "public", table: "orders",
+        filter: "restaurant_id=eq." + RESTAURANT_ID }, () => loadOrders())
     .subscribe();
 
-  sb.channel("waiter-channel")
-    .on("postgres_changes", {
-      event: "*", schema: "public", table: "waiter_calls",
-      filter: "restaurant_id=eq." + restaurantId
-    }, () => loadWaiters())
+  sb.channel("rt-waiters")
+    .on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls",
+        filter: "restaurant_id=eq." + RESTAURANT_ID }, () => loadWaiters())
     .subscribe();
 
-  /* Backup auto-refresh every 5s */
-  setInterval(() => { loadOrders(); loadWaiters(); }, 5000);
+  setInterval(() => { loadOrders(); loadWaiters(); }, 8000);
 
-  /* Initial load */
   loadOrders();
   loadWaiters();
   loadDishes();
-
 </script>
 </body>
 </html>
