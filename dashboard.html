@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Restaurant Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+      color: white;
+      padding: 20px;
+    }
+
+    h1 {
+      background: linear-gradient(135deg, #ff4ecd, #4e9bff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section {
+      margin-top: 40px;
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.08);
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+
+    input, select {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #ff4ecd;
+      color: white;
+      margin: 5px;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Admin Dashboard</h1>
+<button onclick="logout()">Logout</button>
+
+<div class="section">
+  <h2>🛒 Orders</h2>
+  <div id="orders"></div>
+  <button onclick="downloadReport()">Download Today Report</button>
+</div>
+
+<div class="section">
+  <h2>🔔 Waiter Calls</h2>
+  <div id="waiters"></div>
+</div>
+
+<div class="section">
+  <h2>🍽 Add Dish</h2>
+  <input type="text" id="dishName" placeholder="Dish Name">
+  <input type="number" id="dishPrice" placeholder="Price">
+  <input type="text" id="dishImage" placeholder="Image URL">
+  <input type="text" id="dishCategory" placeholder="Category">
+  <button onclick="addDish()">Add Dish</button>
+
+  <h3>All Dishes</h3>
+  <div id="dishList"></div>
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const restaurantId = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
+
+// 🔐 Auth check
+supabaseClient.auth.getSession().then(({ data }) => {
+  if (!data.session) {
+    window.location.href = "admin.html";
+  }
+});
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "admin.html";
+}
+
+// =====================
+// ORDERS
+// =====================
+
+async function loadOrders() {
+  const { data } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .order("created_at", { ascending: false });
+
+  const container = document.getElementById("orders");
+  container.innerHTML = "";
+
+  data.forEach(order => {
+    container.innerHTML += `
+      <div class="card">
+        <b>Table:</b> ${order.table_number} |
+        <b>Total:</b> ₹${order.total_amount} |
+        <b>Status:</b> ${order.status}
+        <br>
+        <button onclick="updateOrder('${order.id}','preparing')">Preparing</button>
+        <button onclick="updateOrder('${order.id}','served')">Served</button>
+        <button onclick="updateOrder('${order.id}','completed')">Completed</button>
+      </div>
+    `;
+  });
+}
+
+async function updateOrder(id, status) {
+  await supabaseClient.from("orders")
+    .update({ status })
+    .eq("id", id);
+
+  loadOrders();
+}
+
+// =====================
+// WAITER CALLS
+// =====================
+
+async function loadWaiters() {
+  const { data } = await supabaseClient
+    .from("waiter_calls")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .eq("status","pending");
+
+  const container = document.getElementById("waiters");
+  container.innerHTML = "";
+
+  data.forEach(call => {
+    container.innerHTML += `
+      <div class="card">
+        Table ${call.table_number}
+        <button onclick="serveWaiter('${call.id}')">Mark Served</button>
+      </div>
+    `;
+  });
+}
+
+async function serveWaiter(id) {
+  await supabaseClient.from("waiter_calls")
+    .update({ status: "served" })
+    .eq("id", id);
+
+  loadWaiters();
+}
+
+// =====================
+// DISH MANAGEMENT
+// =====================
+
+async function addDish() {
+  const name = dishName.value;
+  const price = dishPrice.value;
+  const image = dishImage.value;
+  const category = dishCategory.value;
+
+  await supabaseClient.from("dishes").insert([{
+    restaurant_id: restaurantId,
+    name,
+    price,
+    image,
+    category
+  }]);
+
+  loadDishes();
+}
+
+async function loadDishes() {
+  const { data } = await supabaseClient
+    .from("dishes")
+    .select("*")
+    .eq("restaurant_id", restaurantId);
+
+  const container = document.getElementById("dishList");
+  container.innerHTML = "";
+
+  data.forEach(dish => {
+    container.innerHTML += `
+      <div class="card">
+        ${dish.name} - ₹${dish.price}
+        <button onclick="deleteDish('${dish.id}')">Delete</button>
+      </div>
+    `;
+  });
+}
+
+async function deleteDish(id) {
+  await supabaseClient.from("dishes").delete().eq("id", id);
+  loadDishes();
+}
+
+// =====================
+// REPORT DOWNLOAD
+// =====================
+
+async function downloadReport() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .gte("created_at", today);
+
+  let csv = "Table,Total,Status\n";
+
+  data.forEach(order => {
+    csv += ${order.table_number},${order.total_amount},${order.status}\n;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "today_orders.csv";
+  a.click();
+}
+
+// =====================
+// AUTO REFRESH
+// =====================
+
+setInterval(() => {
+  loadOrders();
+  loadWaiters();
+}, 5000);
+
+loadOrders();
+loadWaiters();
+loadDishes();
+
+</script>
+
+</body>
+</html>
