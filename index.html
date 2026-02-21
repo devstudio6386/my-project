@@ -1465,10 +1465,33 @@ async function placeOrder() {
     });
 
     // Waiter confirm
-    document.getElementById('waiter-confirm').addEventListener('click', () => {
-      waiterModal.classList.remove('visible');
-      waiterCalledModal.classList.add('visible');
-    });
+
+document.getElementById('waiter-confirm').addEventListener('click', async () => {
+
+    console.log("Calling waiter...");
+
+    const { error } = await supabaseClient
+        .from("waiter_calls")
+        .insert([
+            {
+                restaurant_id: restaurantId,
+                table_number: tableNumber,
+                status: "pending"
+            }
+        ]);
+
+    if (error) {
+        console.error("Waiter call error:", error);
+        alert("Failed to call waiter!");
+        return;
+    }
+
+    console.log("Waiter call inserted successfully");
+
+    waiterModal.classList.remove('visible');
+    waiterCalledModal.classList.add('visible');
+
+});
 
     // Waiter called close
     document.getElementById('waiter-called-close').addEventListener('click', () => {
