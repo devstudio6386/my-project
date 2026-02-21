@@ -1139,8 +1139,8 @@ async function loadRestaurant() {
 
   restaurantId = data.id;
 
-;
-  fetchDishes();
+await fetchDishes();
+loadCategories();
 }
      
 
