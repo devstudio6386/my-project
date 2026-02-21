@@ -1132,52 +1132,50 @@ async function loadRestaurant() {
 }
      
 
-let isPlacingOrder = false;
-
 async function placeOrder() {
 
-  if (isPlacingOrder) {
-    console.log("Already placing order...");
+  console.log("Cart right now:", cart);
+
+  if (!cart || cart.length === 0) {
+    alert("Cart is empty!");
     return;
   }
 
-  isPlacingOrder = true;
-
-  try {
-
-    if (cart.length === 0) {
-      alert("Cart is empty!");
-      isPlacingOrder = false;
-      return;
-    }
-
-    const totalAmount = cart.reduce((sum, item) => {
-      const dish = dishes.find(d => d.id === item.id);
-      return sum + (dish.price * item.quantity);
-    }, 0);
-
-    const { error } = await supabaseClient
-      .from("orders")
-      .insert([{
-        restaurant_id: restaurantId,
-        table_number: tableNumber,
-        items: cart,
-        total_amount: totalAmount,
-        status: "pending"
-      }]);
-
-    if (error) {
-      console.error(error);
-    }
-
-    cart = [];
-    updateCartUI();
-
-  } catch (err) {
-    console.error(err);
+  if (!restaurantId) {
+    alert("Restaurant not loaded yet!");
+    return;
   }
 
-  isPlacingOrder = false;
+  const totalAmount = cart.reduce((sum, item) => {
+    const dish = dishes.find(d => d.id === item.id);
+    if (!dish) return sum;
+    return sum + (dish.price * item.quantity);
+  }, 0);
+
+  const { error } = await supabaseClient
+    .from("orders")
+    .insert([{
+      restaurant_id: restaurantId,
+      table_number: tableNumber,
+      items: cart,
+      total_amount: totalAmount,
+      status: "pending"
+    }]);
+
+  if (error) {
+    console.error(error);
+    alert("Insert failed");
+    return;
+  }
+
+  cart = [];
+  updateUI();
+  cartModal.classList.remove("visible");
+
+  successPopup.classList.add("visible");
+  setTimeout(() => {
+    successPopup.classList.remove("visible");
+  }, 2000);
 }
 
     // Categories
