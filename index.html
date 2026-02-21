@@ -1101,6 +1101,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let dishes = [];
      
       let restaurantId = null;
+      let tableNumber = "1"; // later QR se dynamic karenge
 
 async function loadRestaurant() {
   const subdomain = window.location.hostname.split('.')[0];
@@ -1120,6 +1121,41 @@ async function loadRestaurant() {
   fetchDishes();
 }
      
+
+async function placeOrder() {
+
+  if (cart.length === 0) {
+    alert("Cart is empty!");
+    return;
+  }
+
+  const totalAmount = cart.reduce((sum, item) => {
+    return sum + (item.price * item.quantity);
+  }, 0);
+
+  const { error } = await supabaseClient
+    .from("orders")
+    .insert([
+      {
+        restaurant_id: restaurantId,
+        table_number: tableNumber,
+        items: cart,
+        total_amount: totalAmount,
+        status: "pending"
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("Order failed!");
+    return;
+  }
+
+  alert("Order placed successfully!");
+
+  cart = [];
+  updateCartUI();
+}
 
 
     // Categories
