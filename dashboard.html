@@ -48,60 +48,22 @@ let editingId = null;
 
 /* ================= ORDERS ================= */
 
-async function loadOrders() {
-
-  const { data: orders, error } = await sb
+async function loadOrders(){
+  const {data,error} = await sb
     .from("orders")
     .select("*")
-    .eq("restaurant_id", RESTAURANT_ID)
-    .order("created_at", { ascending: false });
+    .eq("restaurant_id",RESTAURANT_ID)
+    .order("created_at",{ascending:false});
+
+  console.log("Orders:",data,error);
 
   const box = document.getElementById("orders");
-  box.innerHTML = "";
+  box.innerHTML="";
 
-  if (!orders || orders.length === 0) {
-    box.innerHTML = "No orders";
+  if(!data || data.length===0){
+    box.innerHTML="No orders";
     return;
   }
-
-  for (const order of orders) {
-
-    let itemsHTML = "";
-
-    if (order.items && Array.isArray(order.items)) {
-
-      const ids = order.items.map(i => i.id);
-
-      const { data: dishes } = await sb
-        .from("dishes")
-        .select("id,name,price")
-        .in("id", ids);
-
-      order.items.forEach(item => {
-
-        const dish = dishes.find(d => d.id === item.id);
-
-        if (dish) {
-          itemsHTML += `
-            <div>
-              ${dish.name} × ${item.quantity}
-            </div>
-          `;
-        }
-      });
-    }
-
-    box.innerHTML += `
-      <div class="card">
-        <b>Table ${order.table_number}</b><br>
-        ${itemsHTML}
-        <br>
-        Status: ${order.status}<br>
-        Total: ₹${order.total_amount}
-      </div>
-    `;
-  }
-}
 
   data.forEach(o=>{
     box.innerHTML+=`
@@ -115,7 +77,7 @@ async function loadOrders() {
       </div>
     `;
   });
-
+}
 
 async function updateStatus(id,status){
   await sb.from("orders").update({status}).eq("id",id);
