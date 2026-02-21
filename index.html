@@ -1108,8 +1108,20 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Dishes will come from database
 let dishes = [];
      
-      let restaurantId = null;
-      let tableNumber = "1"; // later QR se dynamic karenge
+    let restaurantId = null;
+
+// Default table 1
+let tableNumber = "1";
+
+// URL se table number read karo
+const params = new URLSearchParams(window.location.search);
+const tableFromURL = params.get("table");
+
+if (tableFromURL) {
+  tableNumber = tableFromURL;
+}
+
+console.log("Current table:", tableNumber);
 
 async function loadRestaurant() {
   const subdomain = window.location.hostname.split('.')[0];
