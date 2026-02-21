@@ -121,14 +121,37 @@ async function downloadTodayReport() {
     return;
   }
 
-  let csv = "Table,Status,Total,Date\n";
+  // Fetch dishes once
+  const { data: allDishes } = await sb
+    .from("dishes")
+    .select("id,name");
+
+  let csv = "Table,Items,Status,Total,Date\n";
 
   for (let i = 0; i < orders.length; i++) {
     const o = orders[i];
-    csv += o.table_number + "," +
-           o.status + "," +
-           o.total_amount + "," +
-           o.created_at + "\n";
+
+    let itemsText = "";
+
+    if (o.items && Array.isArray(o.items)) {
+      const itemStrings = o.items.map(item => {
+        const dish = allDishes.find(d => d.id === item.id);
+        if (!dish) return "";
+        return dish.name + " x" + item.quantity;
+      });
+      itemsText = itemStrings.join(" | ");
+    }
+
+    const formattedDate = new Date(o.created_at)
+      .toLocaleString("en-IN");
+
+    csv +=
+      o.table_number + "," +
+      '"' + itemsText + '",' +   // important quotes for commas
+      o.status + "," +
+      o.total_amount + "," +
+      '"' + formattedDate + '"' +
+      "\n";
   }
 
   const blob = new Blob([csv], { type: "text/csv" });
@@ -137,7 +160,6 @@ async function downloadTodayReport() {
   link.download = "today_orders.csv";
   link.click();
 }
-
 /* ================= WAITER ================= */
 
 async function loadWaiters() {
