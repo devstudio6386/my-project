@@ -47,7 +47,6 @@ input{
   margin:5px 5px 0 0;
 }
 
-/* ===== STATS ===== */
 #stats{
   display:flex;
   gap:15px;
@@ -61,7 +60,6 @@ input{
   text-align:center;
 }
 
-/* ===== MODULE GRID ===== */
 #modules{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -83,7 +81,6 @@ input{
   background:#243046;
 }
 
-/* Hide sections initially */
 .section{
   display:none;
 }
@@ -95,15 +92,13 @@ input{
 
 <div id="stats"></div>
 
-<!-- ERP STYLE MODULES -->
 <div id="modules">
   <div class="module-btn" onclick="showSection('trackOrders')">📦 Track Orders</div>
   <div class="module-btn" onclick="showSection('orderManagement')">📊 Order Management</div>
-  <div class="module-btn" onclick="showSection('manageDashboard')">➕ Manage Dashboard</div>
-  <div class="module-btn" onclick="showSection('allDishes')">🍽 All Dishes</div>
+  <div class="module-btn" onclick="showSection('manageDashboard')">🍽 Manage Dishes</div>
 </div>
 
-<!-- TRACK ORDERS -->
+<!-- TRACK -->
 <div id="trackOrders" class="section">
   <h3>🛒 Live Orders</h3>
   <div id="orders"></div>
@@ -127,11 +122,8 @@ input{
   <input id="category" placeholder="Category">
   <input id="image" placeholder="Image URL">
   <button onclick="saveDish()">Save</button>
-</div>
 
-<!-- ALL DISHES -->
-<div id="allDishes" class="section">
-  <h3>🍽 All Dishes</h3>
+  <h3 style="margin-top:30px;">📋 All Dishes</h3>
   <div id="dishes"></div>
 </div>
 
@@ -147,14 +139,6 @@ let editingId=null;
 function showSection(id){
   document.querySelectorAll(".section").forEach(s=>s.style.display="none");
   document.getElementById(id).style.display="block";
-}
-
-/* ===== STATUS BADGE ===== */
-function getStatusBadge(status){
-  if(status==="preparing") return '<span style="color:#facc15">Preparing</span>';
-  if(status==="served") return '<span style="color:#38bdf8">Served</span>';
-  if(status==="completed") return '<span style="color:#22c55e">Completed</span>';
-  return status;
 }
 
 /* ===== ORDERS ===== */
@@ -183,7 +167,7 @@ async function loadOrders(){
       <div class="card">
         <b>Table ${o.table_number}</b><br>
         ${itemsHTML}
-        <br>Status: ${getStatusBadge(o.status)}
+        <br>Status: ${o.status}
         <br>Total: ₹${o.total_amount}<br>
         <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
         <button onclick="updateStatus('${o.id}','served')">Served</button>
@@ -226,15 +210,6 @@ async function loadStats(){
     <div class="card"><b>${pending}</b><br>Pending</div>
   `;
 }
-
-/* ===== REALTIME ===== */
-sb.channel('orders-channel')
-.on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>loadOrders())
-.subscribe();
-
-sb.channel('waiter-channel')
-.on('postgres_changes',{event:'*',schema:'public',table:'waiter_calls'},()=>loadWaiters())
-.subscribe();
 
 /* ===== WAITER ===== */
 async function loadWaiters(){
@@ -307,11 +282,27 @@ async function saveDish(){
     await sb.from("dishes")
     .update({name,price,category,image}).eq("id",editingId);
     editingId=null;
+    alert("Dish Updated Successfully ✅");
   }else{
     await sb.from("dishes")
     .insert([{restaurant_id:RESTAURANT_ID,name,price,category,image}]);
+    alert("Dish Added Successfully ✅");
   }
 
+  document.getElementById("name").value="";
+  document.getElementById("price").value="";
+  document.getElementById("category").value="";
+  document.getElementById("image").value="";
+
+  loadDishes();
+}
+
+async function deleteDish(id){
+  const confirmDelete=confirm("Delete this dish?");
+  if(!confirmDelete) return;
+
+  await sb.from("dishes").delete().eq("id",id);
+  alert("Dish Deleted Successfully ❌");
   loadDishes();
 }
 
