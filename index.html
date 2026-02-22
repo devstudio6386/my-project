@@ -1124,7 +1124,8 @@ if (tableFromURL) {
 console.log("Current table:", tableNumber);
 
 async function loadRestaurant() {
- const slug = window.location.pathname.split("/")[1];
+ const params = new URLSearchParams(window.location.search);
+const slug = params.get("r");
   const { data, error } = await supabaseClient
   .from("restaurants")
   .select("*")
