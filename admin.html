@@ -84,9 +84,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function login() {
-
-  const email = document.getElementById("email").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
   const password = document.getElementById("password").value.trim();
+
+  console.log("Trying login with:", email);
 
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email: email,
@@ -94,33 +95,15 @@ async function login() {
   });
 
   if (error) {
+    console.error("LOGIN ERROR:", error);
     alert("Login Failed: " + error.message);
     return;
   }
 
-  // 🔥 STEP 1 — Auth user ID lo
-  const userId = data.user.id;
-
-  // 🔥 STEP 2 — admins table se restaurant_id lo
-  const { data: adminData, error: adminError } = await supabaseClient
-    .from("admins")
-    .select("*")
-    .eq("id", userId)
-    .single();
-
-  if (adminError) {
-    alert("Admin not linked to restaurant");
-    return;
-  }
-
-  // 🔥 restaurant_id save karo
-  localStorage.setItem("restaurant_id", adminData.restaurant_id);
-
-  // Dashboard open karo
+  console.log("Login Success:", data);
   window.location.href = "dashboard.html";
 }
 
-  
 </script>
 
 </body>
