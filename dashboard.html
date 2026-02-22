@@ -331,7 +331,22 @@ loadOrders();
 loadWaiters();
 loadDishes();
 showSection('trackOrders');
-
+// 🔴 REALTIME ORDERS LISTENER
+sb.channel('orders-channel')
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'orders',
+      filter: 'restaurant_id=eq.${RESTAURANT_ID}'
+    },
+    (payload) => {
+      console.log('New order received:', payload);
+      loadOrders();
+    }
+  )
+  .subscribe();
 
 async function downloadTodayReport(){
 
