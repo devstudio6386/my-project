@@ -340,11 +340,12 @@ async function downloadTodayReport(){
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    const { data: orders, error } = await sb
-      .from("orders")
-      .select("*")
-      .eq("restaurant_id", RESTAURANT_ID)
-      .gte("created_at", today.toISOString());
+   const { data: orders, error } = await sb
+  .from("orders")
+  .select("*")
+  .eq("restaurant_id", RESTAURANT_ID)
+  .gte("created_at", today.toISOString())
+  .order("created_at", { ascending: true });
 
     if(error){
       console.error(error);
