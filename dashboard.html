@@ -331,6 +331,76 @@ loadOrders();
 loadWaiters();
 loadDishes();
 showSection('trackOrders');
+
+
+async function downloadTodayReport(){
+
+  try{
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const { data: orders, error } = await sb
+      .from("orders")
+      .select("*")
+      .eq("restaurant_id", RESTAURANT_ID)
+      .gte("created_at", today.toISOString());
+
+    if(error){
+      console.error(error);
+      alert("Error loading orders");
+      return;
+    }
+
+    if(!orders || orders.length === 0){
+      alert("No orders today");
+      return;
+    }
+
+    const { data: allDishes } = await sb
+      .from("dishes")
+      .select("id,name");
+
+    let csv = "Table,Items,Status,Total,Date\n";
+
+    orders.forEach(o => {
+
+      let itemsText = "";
+
+      if(o.items && Array.isArray(o.items)){
+        itemsText = o.items.map(item=>{
+          const dish = allDishes.find(d=>d.id===item.id);
+          return dish ? dish.name + " x" + item.quantity : "";
+        }).join(" | ");
+      }
+
+      const formattedDate = new Date(o.created_at)
+        .toLocaleString("en-IN");
+
+      csv += o.table_number + "," +
+       '"' + itemsText + '",' +
+       o.status + "," +
+       o.total_amount + "," +
+       '"' + formattedDate + '"' +
+       "\n";
+
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "today_orders.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+  }catch(err){
+    console.error(err);
+    alert("Something went wrong");
+  }
+}
 </script>
 
 </body>
