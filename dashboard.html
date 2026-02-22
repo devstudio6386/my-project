@@ -431,13 +431,12 @@ sb.channel('waiter-calls-realtime')
   .on(
     'postgres_changes',
     {
-      event: 'INSERT',
+      event: '*',   // temporary debug
       schema: 'public',
-      table: 'waiter_calls',
-      filter: 'restaurant_id=eq.${RESTAURANT_ID}'
+      table: 'waiter_calls'
     },
     (payload) => {
-      console.log("🔔 NEW WAITER CALL:", payload);
+      console.log("🔔 WAITER EVENT:", payload);
       loadWaiters();
     }
   )
