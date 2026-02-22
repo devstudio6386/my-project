@@ -1253,8 +1253,9 @@ async function placeOrder() {
     function renderDishes() {
       const filteredDishes = dishes.filter(dish => {
         const matchesCategory = activeCategory === 'All' || dish.category === activeCategory;
-        const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             dish.description.toLowerCase().includes(searchQuery.toLowerCase());
+       const matchesSearch =
+  (dish.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+  (dish.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
       });
 
