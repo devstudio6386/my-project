@@ -147,7 +147,7 @@ input{
 <script>
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
-const RESTAURANT_ID = localStorage.getItem("restaurant_id");
+const RESTAURANT_ID = window.localStorage.getItem("restaurant_id");
 
 if (!RESTAURANT_ID) {
   alert("No restaurant linked. Please login again.");
