@@ -84,6 +84,23 @@ input{
 .section{
   display:none;
 }
+
+.new-badge{
+  background:#ef4444;
+  color:#fff;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  margin-left:10px;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  0%{opacity:1;}
+  50%{opacity:0.3;}
+  100%{opacity:1;}
+}
 </style>
 </head>
 <body>
@@ -165,7 +182,10 @@ async function loadOrders(){
 
     box.innerHTML+=`
       <div class="card">
-        <b>Table ${o.table_number}</b><br>
+        <b>
+  Table ${o.table_number}
+  ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
+</b><br>
         ${itemsHTML}
         <br>Status: ${o.status}
         <br>Total: ₹${o.total_amount}<br>
