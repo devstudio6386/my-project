@@ -149,8 +149,8 @@ const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 const RESTAURANT_ID = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let editingId=null;
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ===== SECTION SWITCH ===== */
 function showSection(id){
