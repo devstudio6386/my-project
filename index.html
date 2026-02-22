@@ -1124,13 +1124,12 @@ if (tableFromURL) {
 console.log("Current table:", tableNumber);
 
 async function loadRestaurant() {
-  const subdomain = window.location.hostname.split('.')[0];
-
+ const slug = window.location.pathname.split("/")[1];
   const { data, error } = await supabaseClient
-    .from("restaurants")
-    .select("*")
-    .eq("subdomain", subdomain)
-    .single();
+  .from("restaurants")
+  .select("*")
+  .eq("slug", slug)
+  .single();
 
   if (error) {
     console.error("Restaurant fetch error:", error);
