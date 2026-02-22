@@ -266,10 +266,27 @@ async function loadStats(){
 
 /* ===== AUTO REFRESH ===== */
 
-setInterval(()=>{
-  loadOrders();
-  loadWaiters();
-},5000);
+sb
+.channel('orders-channel')
+.on(
+  'postgres_changes',
+  { event: '*', schema: 'public', table: 'orders' },
+  payload => {
+    loadOrders();
+  }
+)
+.subscribe();
+
+sb
+.channel('waiter-channel')
+.on(
+  'postgres_changes',
+  { event: '*', schema: 'public', table: 'waiter_calls' },
+  payload => {
+    loadWaiters();
+  }
+)
+.subscribe();
 
 /* ===== WAITER ===== */
 
