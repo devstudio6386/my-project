@@ -7,6 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+html{
+  scroll-behavior:smooth;
+}
+
 body{
   font-family:'Poppins',sans-serif;
   background:#0f172a;
@@ -14,6 +18,8 @@ body{
   padding:20px;
   margin:0;
   min-height:100vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
 h2{
@@ -86,17 +92,30 @@ input::placeholder{
   color:#94a3b8;
 }
 
+/* ===== STATS LANDSCAPE ===== */
+
 #stats{
   display:flex;
   gap:15px;
-  flex-wrap:wrap;
-  margin-bottom:20px;
+  margin-bottom:25px;
+  overflow-x:auto;
+  padding-bottom:5px;
 }
+
+#stats .card{
+  min-width:200px;
+  flex:1;
+  justify-content:center;
+  text-align:center;
+}
+
+/* ===== MOBILE ===== */
 
 @media(max-width:600px){
   body{padding:16px;}
   .card{flex-direction:column;align-items:flex-start;}
   button{width:100%;text-align:center;}
+  #stats{flex-wrap:nowrap;}
 }
 </style>
 </head>
@@ -104,7 +123,6 @@ input::placeholder{
 
 <h2>🍴 Dashboard</h2>
 
-<!-- ✅ STATS SECTION -->
 <div id="stats"></div>
 
 <section>
@@ -138,7 +156,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let editingId = null;
 
-/* ================= STATUS BADGE ================= */
+/* ===== STATUS BADGE ===== */
 
 function getStatusBadge(status){
   if(status === "preparing"){
@@ -153,10 +171,10 @@ function getStatusBadge(status){
   return status;
 }
 
-/* ================= ORDERS ================= */
+/* ===== ORDERS ===== */
 
 async function loadOrders() {
-  const { data: orders, error } = await sb
+  const { data: orders } = await sb
     .from("orders")
     .select("*")
     .eq("restaurant_id", RESTAURANT_ID)
@@ -208,7 +226,7 @@ async function updateStatus(id, status) {
   loadOrders();
 }
 
-/* ================= STATS ================= */
+/* ===== STATS ===== */
 
 async function loadStats(){
 
@@ -234,26 +252,26 @@ async function loadStats(){
   });
 
   document.getElementById("stats").innerHTML = `
-    <div class="card" style="flex:1;min-width:160px;">
+    <div class="card">
       <b>₹${revenue}</b><br>Today Revenue
     </div>
-    <div class="card" style="flex:1;min-width:160px;">
+    <div class="card">
       <b>${orders.length}</b><br>Total Orders
     </div>
-    <div class="card" style="flex:1;min-width:160px;">
+    <div class="card">
       <b>${pending}</b><br>Pending Orders
     </div>
   `;
 }
 
-/* ================= AUTO REFRESH ================= */
+/* ===== AUTO REFRESH ===== */
 
 setInterval(()=>{
   loadOrders();
   loadWaiters();
 },5000);
 
-/* ================= WAITER ================= */
+/* ===== WAITER ===== */
 
 async function loadWaiters() {
   const { data } = await sb
@@ -284,7 +302,7 @@ async function doneWaiter(id) {
   loadWaiters();
 }
 
-/* ================= DISHES ================= */
+/* ===== DISHES ===== */
 
 async function loadDishes() {
   const { data } = await sb
@@ -348,7 +366,7 @@ async function deleteDish(id) {
   loadDishes();
 }
 
-/* ================= INIT ================= */
+/* ===== INIT ===== */
 
 loadOrders();
 loadWaiters();
