@@ -424,6 +424,26 @@ channel
   .subscribe((status) => {
     console.log("📡 Status:", status);
   });
+
+
+  // ===== WAITER CALLS REALTIME =====
+sb.channel('waiter-calls-realtime')
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'waiter_calls',
+      filter: 'restaurant_id=eq.${RESTAURANT_ID}'
+    },
+    (payload) => {
+      console.log("🔔 NEW WAITER CALL:", payload);
+      loadWaiters();
+    }
+  )
+  .subscribe((status) => {
+    console.log("📡 WAITER STATUS:", status);
+  });
 </script>
 
 </body>
