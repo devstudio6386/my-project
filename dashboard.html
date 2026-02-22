@@ -331,22 +331,7 @@ loadOrders();
 loadWaiters();
 loadDishes();
 showSection('trackOrders');
-// 🔴 REALTIME ORDERS LISTENER
-sb.channel('orders-channel')
-  .on(
-    'postgres_changes',
-    {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'orders',
-      filter: 'restaurant_id=eq.${RESTAURANT_ID}'
-    },
-    (payload) => {
-      console.log('New order received:', payload);
-      loadOrders();
-    }
-  )
-  .subscribe();
+
 
 async function downloadTodayReport(){
 
@@ -417,6 +402,28 @@ async function downloadTodayReport(){
     alert("Something went wrong");
   }
 }
+
+
+// ===== REALTIME ORDERS =====
+
+const channel = sb.channel('orders-realtime');
+
+channel
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'orders'
+    },
+    (payload) => {
+      console.log("🔥 NEW ORDER:", payload);
+      loadOrders();
+    }
+  )
+  .subscribe((status) => {
+    console.log("📡 Status:", status);
+  });
 </script>
 
 </body>
