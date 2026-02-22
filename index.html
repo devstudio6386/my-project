@@ -1191,7 +1191,42 @@ async function placeOrder() {
 }
 
     // Categories
-    const categories = ['All', 'Starters', 'Main Course', 'Drinks', 'Desserts', 'Chinese', 'Indian'];
+   async function loadCategories() {
+
+  const { data, error } = await supabaseClient
+    .from("dishes")
+    .select("category")
+    .eq("restaurant_id", restaurantId);
+
+  if (error) {
+    console.error("Category fetch error:", error);
+    return;
+  }
+
+  const container = document.getElementById("categories-container");
+  container.innerHTML = "";
+
+  if (!data || data.length === 0) return;
+
+  const uniqueCategories = [...new Set(
+    data.map(d => d.category).filter(c => c)
+  )];
+
+  // Always show ALL first
+  container.innerHTML += `
+    <button onclick="setCategory('All')" class="category-btn active">
+      All
+    </button>
+  `;
+
+  uniqueCategories.forEach(cat => {
+    container.innerHTML += `
+      <button onclick="setCategory('${cat}')" class="category-btn">
+        ${cat}
+      </button>
+    `;
+  });
+}
 
     // ============================================
     // STATE MANAGEMENT
@@ -1578,6 +1613,8 @@ document.getElementById('waiter-confirm').addEventListener('click', async () => 
 
   dishes = data;
   renderDishes();
+
+  await loadCategories();   // 👈 YE LINE ADD KARO
 }
     // ============================================
     // INITIAL RENDER
