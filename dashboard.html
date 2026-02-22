@@ -426,12 +426,15 @@ channel
   });
 
 
-  // ===== WAITER CALLS REALTIME =====
-sb.channel('waiter-calls-realtime')
+ // ===== WAITER CALLS REALTIME =====
+
+const waiterChannel = sb.channel('waiter-calls-realtime');
+
+waiterChannel
   .on(
     'postgres_changes',
     {
-      event: '*',   // temporary debug
+      event: '*',
       schema: 'public',
       table: 'waiter_calls'
     },
@@ -441,7 +444,7 @@ sb.channel('waiter-calls-realtime')
     }
   )
   .subscribe((status) => {
-    console.log("📡 WAITER STATUS:", status);
+    console.log("🛰 WAITER STATUS:", status);
   });
 </script>
 
