@@ -101,9 +101,34 @@ input{
   50%{opacity:0.3;}
   100%{opacity:1;}
 }
+
+/* ===== NOTIFICATION TOAST ===== */
+#toast-container{
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:9999;
+}
+
+.toast{
+  padding:14px 18px;
+  border-radius:10px;
+  color:#fff;
+  font-weight:600;
+  margin-bottom:10px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.3);
+  animation:slideIn .3s ease;
+}
+
+@keyframes slideIn{
+  from{transform:translateX(100%);opacity:0;}
+  to{transform:translateX(0);opacity:1;}
+}
 </style>
 </head>
 <body>
+  <!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
 
 <h2>🍴 Dashboard</h2>
 
@@ -151,6 +176,17 @@ const RESTAURANT_ID = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ===== TOAST FUNCTION ===== */
+function showToast(message,color){
+  const container=document.getElementById("toast-container");
+  const toast=document.createElement("div");
+  toast.className="toast";
+  toast.style.background=color;
+  toast.innerText=message;
+  container.appendChild(toast);
+  setTimeout(()=>{toast.remove();},4000);
+}
 
 /* ===== SECTION SWITCH ===== */
 function showSection(id){
@@ -418,6 +454,7 @@ channel
     },
     (payload) => {
       console.log("🔥 NEW ORDER:", payload);
+      showToast("🔥 New Order Received!","#22c55e");
       loadOrders();
     }
   )
@@ -440,6 +477,7 @@ waiterChannel
     },
     (payload) => {
       console.log("🔔 WAITER EVENT:", payload);
+      showToast("🔔 Waiter Called!","#f97316");
       loadWaiters();
     }
   )
