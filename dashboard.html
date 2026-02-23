@@ -657,14 +657,15 @@ async function generateCompletedBill(){
   <hr>
   <b>Total: ₹${total}</b>
   <br><br>
-  <button onclick="downloadBillPDF('${tableNumber}', ${total})">
+  <button onclick="downloadBillPDF('${tableNumber}')">
     Download PDF
   </button>
 </div>
 `;
+
 }
 
-async function downloadBillPDF(tableNumber, total){
+async function downloadBillPDF(tableNumber){
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -703,56 +704,111 @@ async function downloadBillPDF(tableNumber, total){
   });
 
   // ===== PDF DESIGN =====
+async function downloadBillPDF(tableNumber, total){
 
-  doc.rect(10,10,190,270); // border
+  const { jsPDF } = window.jspdf;
 
-  doc.setFontSize(18);
-  doc.text(restaurantName,105,25,{align:"center"});
+  // Fetch restaurant name
+  const { data: restaurant } = await sb
+    .from("restaurants")
+    .select("name")
+    .eq("id", RESTAURANT_ID)
+    .single();
 
-  doc.setFontSize(12);
-  doc.text("Table: "+tableNumber,20,40);
-  doc.text("Date: "+new Date().toLocaleString(),20,48);
+  const restaurantName = restaurant?.name || "Restaurant";
 
-  doc.line(15,55,195,55);
+  // Fetch completed orders
+  const { data: orders } = await sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("table_number", tableNumber)
+    .eq("status", "completed");
 
-  let y = 65;
+  if(!orders || orders.length === 0){
+    alert("No completed orders found");
+    return;
+  }
 
-  doc.text("Item",20,y);
-  doc.text("Qty",120,y);
-  doc.text("Price",150,y);
-  doc.text("Total",175,y);
+  const { data: allDishes } = await sb
+    .from("dishes")
+    .select("id,name,price");
 
-  doc.line(15,y+3,195,y+3);
-  y += 12;
+  let mergedItems = {};
+  let grandTotal = 0;
 
-  Object.keys(mergedItems).forEach(id=>{
-    const dish = allDishes.find(d=>d.id==id);
-    if(dish){
-      const qty = mergedItems[id];
-      const price = dish.price;
-      const total = price * qty;
-      grandTotal += total;
-
-      doc.text(dish.name,20,y);
-      doc.text(String(qty),120,y);
-      doc.text("₹"+price,150,y);
-      doc.text("₹"+total,175,y);
-
-      y += 10;
+  orders.forEach(o=>{
+    if(o.items){
+      o.items.forEach(item=>{
+        if(!mergedItems[item.id]){
+          mergedItems[item.id] = item.quantity;
+        } else {
+          mergedItems[item.id] += item.quantity;
+        }
+      });
     }
   });
 
-  doc.line(15,y,195,y);
-  y += 12;
+  // Calculate page height dynamically
+  const itemCount = Object.keys(mergedItems).length;
+  const pageHeight = 100 + (itemCount * 8);
 
-  doc.setFontSize(14);
-  doc.text("Grand Total: ₹"+grandTotal,140,y);
+  const doc = new jsPDF({
+    unit: "mm",
+    format: [80, pageHeight]
+  });
 
-  y += 15;
-  doc.setFontSize(11);
-  doc.text("Thank You! Visit Again 🙏",105,y,{align:"center"});
+  let y = 10;
 
-  doc.save(`${restaurantName}_Table${tableNumber}_Bill.pdf`);
+  doc.setFontSize(12);
+  doc.text(restaurantName, 40, y, { align: "center" });
+  y += 8;
+
+  doc.setFontSize(9);
+  doc.text("Table: " + tableNumber, 5, y);
+  y += 5;
+
+  doc.text("Date: " + new Date().toLocaleString(), 5, y);
+  y += 6;
+
+  doc.line(5, y, 75, y);
+  y += 6;
+
+  doc.text("Item", 5, y);
+  doc.text("Qty", 40, y);
+  doc.text("Total", 60, y);
+  y += 4;
+
+  doc.line(5, y, 75, y);
+  y += 6;
+
+  Object.keys(mergedItems).forEach(id=>{
+    const dish = allDishes.find(d => d.id == id);
+    if(dish){
+      const qty = mergedItems[id];
+      const totalItem = dish.price * qty;
+      grandTotal += totalItem;
+
+      doc.text(dish.name, 5, y);
+      doc.text(String(qty), 40, y);
+      doc.text("Rs " + totalItem, 60, y);
+      y += 6;
+    }
+  });
+
+  doc.line(5, y, 75, y);
+  y += 6;
+
+  doc.setFontSize(10);
+  doc.text("Grand Total: Rs " + grandTotal, 5, y);
+  y += 8;
+
+  doc.setFontSize(9);
+  doc.text("Thank You! Visit Again", 40, y, { align: "center" });
+
+  doc.save(restaurantName + "_Table" + tableNumber + "_Bill.pdf");
+}
+
 }
   
 </script>
