@@ -247,10 +247,9 @@ function showSection(id){
 /* ===== ORDERS ===== */
 async function loadOrders(){
   const {data:orders}=await sb.from("orders")
-  .select("*")
-  .eq("restaurant_id",RESTAURANT_ID)
-  .eq("status","open")   // 👈 YE LINE ADD KARO
-  .order("created_at",{ascending:false});
+    .select("*")
+    .eq("restaurant_id",RESTAURANT_ID)
+    .order("created_at",{ascending:false});
 
   const box=document.getElementById("orders");
   box.innerHTML="";
@@ -271,7 +270,7 @@ async function loadOrders(){
       <div class="card">
         <b>
   Table ${o.table_number}
-  ${o.status === "open" ? '<span class="new-badge">RUNNING</span>' : ''}
+  ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
 </b><br>
         ${itemsHTML}
         <br>Status: ${o.status}
@@ -279,10 +278,6 @@ async function loadOrders(){
         <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
         <button onclick="updateStatus('${o.id}','served')">Served</button>
         <button onclick="updateStatus('${o.id}','completed')">Completed</button>
-        <button onclick="closeBill('${o.id}')" 
-style="background:#22c55e;">
-Close Bill
-</button>
       </div>
     `;
   }
@@ -292,16 +287,6 @@ Close Bill
 
 async function updateStatus(id,status){
   await sb.from("orders").update({status}).eq("id",id);
-  loadOrders();
-}
-
-async function closeBill(orderId){
-  await sb
-    .from("orders")
-    .update({ status:"paid" })
-    .eq("id", orderId);
-
-  alert("Bill Closed ✅");
   loadOrders();
 }
 
@@ -544,7 +529,7 @@ channel
   .on(
     'postgres_changes',
     {
-      event: '*',
+      event: 'INSERT',
       schema: 'public',
       table: 'orders'
     },
