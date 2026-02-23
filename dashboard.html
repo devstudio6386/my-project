@@ -172,7 +172,37 @@ input{
 <script>
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
-const RESTAURANT_ID = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
+
+
+async function loadRestaurantId() {
+
+  const { data, error } = await sb
+    .from("restaurants")
+    .select("id")
+    .eq("slug", restaurantSlug)
+    .single();
+
+  if (error || !data) {
+    alert("Restaurant not found");
+    return;
+  }
+
+  RESTAURANT_ID = data.id;
+
+  // ID milne ke baad sab load karo
+  loadOrders();
+  loadWaiters();
+  loadDishes();
+}
+
+let RESTAURANT_ID = null;
+
+const params = new URLSearchParams(window.location.search);
+const restaurantSlug = params.get("slug");
+
+if (!restaurantSlug) {
+  alert("No restaurant selected in URL");
+}
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -376,10 +406,8 @@ async function deleteDish(id){
 }
 
 /* ===== INIT ===== */
-loadOrders();
-loadWaiters();
-loadDishes();
 showSection('trackOrders');
+loadRestaurantId();
 
 
 async function downloadTodayReport(){
