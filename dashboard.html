@@ -169,6 +169,16 @@ input{
   <div id="dishes"></div>
 </div>
 
+<!-- GENERATE BILL SECTION -->
+<div id="generateBill" class="section">
+  <h3>🧾 Generate Bill</h3>
+
+  <input id="billTableNumber" placeholder="Enter Table Number">
+  <button onclick="generateCompletedBill()">Generate Bill</button>
+
+  <div id="billResult" style="margin-top:20px;"></div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
@@ -578,6 +588,70 @@ waiterChannel
   .subscribe((status) => {
     console.log("🛰 WAITER STATUS:", status);
   });
+
+async function generateCompletedBill(){
+
+  const tableNumber = document.getElementById("billTableNumber").value;
+
+  if(!tableNumber){
+    alert("Enter table number");
+    return;
+  }
+
+  const { data: orders } = await sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("table_number", tableNumber)
+    .eq("status","completed");
+
+  if(!orders || orders.length === 0){
+    document.getElementById("billResult").innerHTML =
+      "No completed orders for this table";
+    return;
+  }
+
+  const { data: allDishes } = await sb
+    .from("dishes")
+    .select("id,name,price");
+
+  let mergedItems = {};
+  let total = 0;
+
+  orders.forEach(o=>{
+    total += o.total_amount;
+
+    o.items.forEach(item=>{
+      if(!mergedItems[item.id]){
+        mergedItems[item.id] = item.quantity;
+      } else {
+        mergedItems[item.id] += item.quantity;
+      }
+    });
+  });
+
+  let itemsHTML = "";
+
+  Object.keys(mergedItems).forEach(id=>{
+    const dish = allDishes.find(d=>d.id == id);
+    if(dish){
+      const qty = mergedItems[id];
+      const price = dish.price * qty;
+      itemsHTML += '${dish.name} x ${qty} = ₹${price}<br>';
+    }
+  });
+
+  document.getElementById("billResult").innerHTML = `
+    <div class="card">
+      <h4>Table ${tableNumber} Bill</h4>
+      <hr>
+      ${itemsHTML}
+      <hr>
+      <b>Total: ₹${total}</b>
+    </div>
+  `;
+}
+  
 </script>
 
 </body>
