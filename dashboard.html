@@ -101,35 +101,9 @@ input{
   50%{opacity:0.3;}
   100%{opacity:1;}
 }
-
-/* ===== NOTIFICATION TOAST ===== */
-#toast-container{
-  position:fixed;
-  top:20px;
-  right:20px;
-  z-index:9999;
-}
-
-.toast{
-  padding:14px 18px;
-  border-radius:10px;
-  color:#fff;
-  font-weight:600;
-  margin-bottom:10px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.3);
-  animation:slideIn .3s ease;
-}
-
-@keyframes slideIn{
-  from{transform:translateX(100%);opacity:0;}
-  to{transform:translateX(0);opacity:1;}
-}
 </style>
 </head>
 <body>
-
-<!-- TOAST CONTAINER -->
-<div id="toast-container"></div>
 
 <h2>🍴 Dashboard</h2>
 
@@ -141,6 +115,7 @@ input{
   <div class="module-btn" onclick="showSection('manageDashboard')">🍽 Manage Dishes</div>
 </div>
 
+<!-- TRACK -->
 <div id="trackOrders" class="section">
   <h3>🛒 Live Orders</h3>
   <div id="orders"></div>
@@ -149,12 +124,14 @@ input{
   <div id="waiters"></div>
 </div>
 
+<!-- ORDER MANAGEMENT -->
 <div id="orderManagement" class="section">
   <h3>📊 Today Orders</h3>
   <button onclick="downloadTodayReport()">Download Today Report</button>
   <div id="orders"></div>
 </div>
 
+<!-- MANAGE DASHBOARD -->
 <div id="manageDashboard" class="section">
   <h3>➕ Add Dish</h3>
   <input id="name" placeholder="Name">
@@ -174,17 +151,6 @@ const RESTAURANT_ID = "91c80fd6-375a-47a2-85de-1ccd4b27c3a0";
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* ===== TOAST FUNCTION ===== */
-function showToast(message,color){
-  const container=document.getElementById("toast-container");
-  const toast=document.createElement("div");
-  toast.className="toast";
-  toast.style.background=color;
-  toast.innerText=message;
-  container.appendChild(toast);
-  setTimeout(()=>{toast.remove();},4000);
-}
 
 /* ===== SECTION SWITCH ===== */
 function showSection(id){
@@ -238,6 +204,33 @@ async function updateStatus(id,status){
   loadOrders();
 }
 
+/* ===== STATS ===== */
+async function loadStats(){
+  const today=new Date();
+  today.setHours(0,0,0,0);
+
+  const {data:orders}=await sb.from("orders")
+    .select("*")
+    .eq("restaurant_id",RESTAURANT_ID)
+    .gte("created_at",today.toISOString());
+
+  if(!orders)return;
+
+  let revenue=0,pending=0,completed=0;
+  orders.forEach(o=>{
+    revenue+=o.total_amount;
+    if(o.status==="completed") completed++;
+    else pending++;
+  });
+
+  document.getElementById("stats").innerHTML=`
+    <div class="card"><b>₹${revenue}</b><br>Revenue Today</div>
+    <div class="card"><b>${orders.length}</b><br>Total Orders</div>
+    <div class="card"><b>${completed}</b><br>Completed</div>
+    <div class="card"><b>${pending}</b><br>Pending</div>
+  `;
+}
+
 /* ===== WAITER ===== */
 async function loadWaiters(){
   const {data}=await sb.from("waiter_calls")
@@ -264,12 +257,155 @@ async function doneWaiter(id){
   loadWaiters();
 }
 
+/* ===== DISHES ===== */
+async function loadDishes(){
+  const {data}=await sb.from("dishes")
+  .select("*")
+  .eq("restaurant_id",RESTAURANT_ID);
+
+  const box=document.getElementById("dishes");
+  box.innerHTML="";
+  if(!data)return;
+
+  for(let d of data){
+    box.innerHTML+=`
+      <div class="card">
+        <b>${d.name}</b> ₹${d.price}
+        <button onclick="editDish('${d.id}')">Edit</button>
+        <button onclick="deleteDish('${d.id}')">Delete</button>
+      </div>
+    `;
+  }
+}
+
+function editDish(id){
+  sb.from("dishes").select("*").eq("id",id).single()
+  .then(res=>{
+    const d=res.data;
+    document.getElementById("name").value=d.name;
+    document.getElementById("price").value=d.price;
+    document.getElementById("category").value=d.category;
+    document.getElementById("image").value=d.image;
+    editingId=id;
+  });
+}
+
+async function saveDish(){
+  const name=document.getElementById("name").value;
+  const price=parseFloat(document.getElementById("price").value);
+  const category=document.getElementById("category").value;
+  const image=document.getElementById("image").value;
+
+  if(!name||isNaN(price)){alert("Name & Price required");return;}
+
+  if(editingId){
+    await sb.from("dishes")
+    .update({name,price,category,image}).eq("id",editingId);
+    editingId=null;
+    alert("Dish Updated Successfully ✅");
+  }else{
+    await sb.from("dishes")
+    .insert([{restaurant_id:RESTAURANT_ID,name,price,category,image}]);
+    alert("Dish Added Successfully ✅");
+  }
+
+  document.getElementById("name").value="";
+  document.getElementById("price").value="";
+  document.getElementById("category").value="";
+  document.getElementById("image").value="";
+
+  loadDishes();
+}
+
+async function deleteDish(id){
+  const confirmDelete=confirm("Delete this dish?");
+  if(!confirmDelete) return;
+
+  await sb.from("dishes").delete().eq("id",id);
+  alert("Dish Deleted Successfully ❌");
+  loadDishes();
+}
+
 /* ===== INIT ===== */
 loadOrders();
 loadWaiters();
+loadDishes();
 showSection('trackOrders');
 
-/* ===== REALTIME ORDERS ===== */
+
+async function downloadTodayReport(){
+
+  try {
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+   const { data: orders, error } = await sb
+  .from("orders")
+  .select("*")
+  .eq("restaurant_id", RESTAURANT_ID)
+  .gte("created_at", today.toISOString())
+  .order("created_at", { ascending: true });
+
+    if(error){
+      console.error(error);
+      alert("Error loading orders");
+      return;
+    }
+
+    if(!orders || orders.length === 0){
+      alert("No orders today");
+      return;
+    }
+
+    const { data: allDishes } = await sb
+      .from("dishes")
+      .select("id,name");
+
+    let csv = "Table,Items,Status,Total,Date\n";
+
+    orders.forEach(o => {
+
+      let itemsText = "";
+
+      if(o.items && Array.isArray(o.items)){
+        itemsText = o.items.map(item=>{
+          const dish = allDishes.find(d=>d.id===item.id);
+          return dish ? dish.name + " x" + item.quantity : "";
+        }).join(" | ");
+      }
+
+      const formattedDate = new Date(o.created_at)
+        .toLocaleString("en-IN");
+
+      csv += o.table_number + "," +
+             '"' + itemsText + '",' +
+             o.status + "," +
+             o.total_amount + "," +
+             '"' + formattedDate + '"' +
+             "\n";
+
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "today_orders.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+  } catch(err) {
+    console.error(err);
+    alert("Something went wrong");
+  }
+}
+
+
+// ===== REALTIME ORDERS =====
+
 const channel = sb.channel('orders-realtime');
 
 channel
@@ -282,7 +418,6 @@ channel
     },
     (payload) => {
       console.log("🔥 NEW ORDER:", payload);
-      showToast("🔥 New Order Received!","#22c55e");
       loadOrders();
     }
   )
@@ -290,7 +425,9 @@ channel
     console.log("📡 Status:", status);
   });
 
-/* ===== WAITER REALTIME ===== */
+
+ // ===== WAITER CALLS REALTIME =====
+
 const waiterChannel = sb.channel('waiter-calls-realtime');
 
 waiterChannel
@@ -303,7 +440,6 @@ waiterChannel
     },
     (payload) => {
       console.log("🔔 WAITER EVENT:", payload);
-      showToast("🔔 Waiter Called!","#f97316");
       loadWaiters();
     }
   )
