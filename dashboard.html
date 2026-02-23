@@ -259,10 +259,14 @@ function showSection(id){
 
 /* ===== ORDERS ===== */
 async function loadOrders(){
-  const {data:orders}=await sb.from("orders")
-    .select("*")
-    .eq("restaurant_id",RESTAURANT_ID)
-    .order("created_at",{ascending:false});
+  const today = new Date();
+today.setHours(0,0,0,0); // raat 12 se start
+
+const { data: orders } = await sb.from("orders")
+.select("*")
+.eq("restaurant_id", RESTAURANT_ID)
+.gte("created_at", today.toISOString())
+.order("created_at", { ascending: false });
 
   const box=document.getElementById("orders");
   box.innerHTML="";
