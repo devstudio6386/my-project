@@ -331,6 +331,29 @@
       opacity: 0;
     }
 
+    /* ===== UNAVAILABLE OVERLAY ===== */
+.unavailable-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.unavailable-overlay span {
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -353,6 +376,29 @@
       height: 140px;
       overflow: hidden;
     }
+
+    /* ===== UNAVAILABLE OVERLAY ===== */
+.unavailable-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.unavailable-overlay span {
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 
     .dish-image {
       width: 100%;
@@ -1288,12 +1334,22 @@ async function placeOrder() {
 
         return `
           <div class="dish-card" style="animation-delay: ${index * 0.05}s">
-            <div class="dish-image-container">
-              <img src="${dish.image}" alt="${dish.name}" class="dish-image" loading="lazy"
-                   onerror="this.style.background='linear-gradient(135deg, #ff4ecd, #4e9bff)'; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2250%22 x=%2225%22>🍽️</text></svg>';">
-              <span class="dish-badge ${dish.isVeg ? 'veg' : 'non-veg'}">${dish.isVeg ? '🌱 Veg' : '🍗 Non-Veg'}</span>
-              ${dish.isBestseller ? '<span class="dish-badge bestseller">⭐ Best</span>' : ''}
-            </div>
+           <div class="dish-image-container">
+  <img src="${dish.image}" alt="${dish.name}" class="dish-image" loading="lazy"
+       onerror="this.style.background='linear-gradient(135deg, #ff4ecd, #4e9bff)'; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2250%22 x=%2225%22>🍽️</text></svg>';">
+  
+  ${dish.is_available === false ? `
+    <div class="unavailable-overlay">
+      <span>Currently Unavailable</span>
+    </div>
+  ` : ''}
+
+  <span class="dish-badge ${dish.isVeg ? 'veg' : 'non-veg'}">
+    ${dish.isVeg ? '🌱 Veg' : '🍗 Non-Veg'}
+  </span>
+
+  ${dish.isBestseller ? '<span class="dish-badge bestseller">⭐ Best</span>' : ''}
+</div>
             <div class="dish-content">
               <h3 class="dish-name">${dish.name}</h3>
               <p class="dish-description">${dish.description}</p>
