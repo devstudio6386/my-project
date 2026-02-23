@@ -1223,20 +1223,52 @@ async function placeOrder() {
     return sum + (dish.price * item.quantity);
   }, 0);
 
-  const { error } = await supabaseClient
+  // 🔎 Check if open order exists for this table
+  const { data: existingOrder } = await supabaseClient
     .from("orders")
-    .insert([{
-      restaurant_id: restaurantId,
-      table_number: tableNumber,
-      items: cart,
-      total_amount: totalAmount,
-      status: "pending"
-    }]);
+    .select("*")
+    .eq("restaurant_id", restaurantId)
+    .eq("table_number", tableNumber)
+    .eq("status", "open")
+    .maybeSingle();
 
-  if (error) {
-    console.error(error);
-    alert("Insert failed");
-    return;
+  if (existingOrder) {
+
+    // 🟢 Merge old + new items
+    const mergedItems = [...existingOrder.items];
+
+    cart.forEach(newItem => {
+      const existingItem = mergedItems.find(i => i.id === newItem.id);
+      if (existingItem) {
+        existingItem.quantity += newItem.quantity;
+      } else {
+        mergedItems.push(newItem);
+      }
+    });
+
+    const newTotal = existingOrder.total_amount + totalAmount;
+
+    await supabaseClient
+      .from("orders")
+      .update({
+        items: mergedItems,
+        total_amount: newTotal
+      })
+      .eq("id", existingOrder.id);
+
+  } else {
+
+    // 🔵 Create new open order
+    await supabaseClient
+      .from("orders")
+      .insert([{
+        restaurant_id: restaurantId,
+        table_number: tableNumber,
+        items: cart,
+        total_amount: totalAmount,
+        status: "open"
+      }]);
+
   }
 
   cart = [];
