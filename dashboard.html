@@ -188,11 +188,18 @@ function showToast(message,color){
   setTimeout(()=>{toast.remove();},4000);
 }
 
-const notificationSound = new Audio("notification.mpeg");
+// ===== SOUND SYSTEM =====
+const orderSound = new Audio("notification.mpeg");
+const waiterSound = new Audio("waiter.mpeg");
 
-function playSound(){
-  notificationSound.currentTime = 0;
-  notificationSound.play();
+function playOrderSound(){
+  orderSound.currentTime = 0;
+  orderSound.play().catch(()=>{});
+}
+
+function playWaiterSound(){
+  waiterSound.currentTime = 0;
+  waiterSound.play().catch(()=>{});
 }
 /* ===== SECTION SWITCH ===== */
 function showSection(id){
@@ -461,7 +468,7 @@ channel
     (payload) => {
   console.log("🔥 NEW ORDER:", payload);
   showToast("🔥 New Order Received!","#22c55e");
-  playSound();   // 👈 ये add करो
+playOrderSound();
   loadOrders();
 }
   )
@@ -484,8 +491,8 @@ waiterChannel
     },
    (payload) => {
   console.log("🔔 WAITER EVENT:", payload);
-  showToast("🔔 Waiter Called!","#f97316");
-  playSound();   // 👈 ये add करो
+ showToast("🔔 Waiter Called!","#f97316");
+playWaiterSound();
   loadWaiters();
 }
   )
