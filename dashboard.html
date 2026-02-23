@@ -188,6 +188,12 @@ function showToast(message,color){
   setTimeout(()=>{toast.remove();},4000);
 }
 
+const notificationSound = new Audio("notification.mpeg");
+
+function playSound(){
+  notificationSound.currentTime = 0;
+  notificationSound.play();
+}
 /* ===== SECTION SWITCH ===== */
 function showSection(id){
   document.querySelectorAll(".section").forEach(s=>s.style.display="none");
@@ -453,10 +459,11 @@ channel
       table: 'orders'
     },
     (payload) => {
-      console.log("🔥 NEW ORDER:", payload);
-      showToast("🔥 New Order Received!","#22c55e");
-      loadOrders();
-    }
+  console.log("🔥 NEW ORDER:", payload);
+  showToast("🔥 New Order Received!","#22c55e");
+  playSound();   // 👈 ये add करो
+  loadOrders();
+}
   )
   .subscribe((status) => {
     console.log("📡 Status:", status);
@@ -475,11 +482,12 @@ waiterChannel
       schema: 'public',
       table: 'waiter_calls'
     },
-    (payload) => {
-      console.log("🔔 WAITER EVENT:", payload);
-      showToast("🔔 Waiter Called!","#f97316");
-      loadWaiters();
-    }
+   (payload) => {
+  console.log("🔔 WAITER EVENT:", payload);
+  showToast("🔔 Waiter Called!","#f97316");
+  playSound();   // 👈 ये add करो
+  loadWaiters();
+}
   )
   .subscribe((status) => {
     console.log("🛰 WAITER STATUS:", status);
