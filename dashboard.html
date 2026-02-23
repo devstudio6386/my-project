@@ -176,6 +176,11 @@ const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
 
 async function loadRestaurantId() {
 
+  if (!restaurantSlug) {
+    alert("No restaurant selected in URL");
+    return;
+  }
+
   const { data, error } = await sb
     .from("restaurants")
     .select("id")
@@ -184,12 +189,14 @@ async function loadRestaurantId() {
 
   if (error || !data) {
     alert("Restaurant not found");
+    console.log(error);
     return;
   }
 
   RESTAURANT_ID = data.id;
 
-  // ID milne ke baad sab load karo
+  console.log("Restaurant Loaded:", RESTAURANT_ID);
+
   loadOrders();
   loadWaiters();
   loadDishes();
@@ -494,9 +501,12 @@ channel
       table: 'orders'
     },
     (payload) => {
+
+  if(payload.new.restaurant_id !== RESTAURANT_ID) return;
+
   console.log("🔥 NEW ORDER:", payload);
   showToast("🔥 New Order Received!","#22c55e");
-playOrderSound();
+  playOrderSound();
   loadOrders();
 }
   )
@@ -518,9 +528,12 @@ waiterChannel
       table: 'waiter_calls'
     },
    (payload) => {
+
+  if(payload.new.restaurant_id !== RESTAURANT_ID) return;
+
   console.log("🔔 WAITER EVENT:", payload);
- showToast("🔔 Waiter Called!","#f97316");
-playWaiterSound();
+  showToast("🔔 Waiter Called!","#f97316");
+  playWaiterSound();
   loadWaiters();
 }
   )
