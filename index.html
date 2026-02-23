@@ -1229,7 +1229,7 @@ async function placeOrder() {
     .select("*")
     .eq("restaurant_id", restaurantId)
     .eq("table_number", tableNumber)
-    .eq("status", "open")
+    .eq("status", "pending")
     .maybeSingle();
 
   if (existingOrder) {
@@ -1266,7 +1266,7 @@ async function placeOrder() {
         table_number: tableNumber,
         items: cart,
         total_amount: totalAmount,
-        status: "open"
+        status: "pending"
       }]);
 
   }
