@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -648,15 +649,110 @@ async function generateCompletedBill(){
     }
   });
 
-  document.getElementById("billResult").innerHTML = `
-    <div class="card">
-      <h4>Table ${tableNumber} Bill</h4>
-      <hr>
-      ${itemsHTML}
-      <hr>
-      <b>Total: ₹${total}</b>
-    </div>
-  `;
+ document.getElementById("billResult").innerHTML = `
+<div class="card">
+  <h4>Table ${tableNumber} Bill</h4>
+  <hr>
+  ${itemsHTML}
+  <hr>
+  <b>Total: ₹${total}</b>
+  <br><br>
+  <button onclick="downloadBillPDF('${tableNumber}', ${total})">
+    Download PDF
+  </button>
+</div>
+`;
+}
+
+async function downloadBillPDF(tableNumber, total){
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Restaurant name fetch
+  const { data: restaurant } = await sb
+    .from("restaurants")
+    .select("name")
+    .eq("id", RESTAURANT_ID)
+    .single();
+
+  const restaurantName = restaurant.name;
+
+  const { data: orders } = await sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("table_number", tableNumber)
+    .eq("status","completed");
+
+  const { data: allDishes } = await sb
+    .from("dishes")
+    .select("id,name,price");
+
+  let mergedItems = {};
+  let grandTotal = 0;
+
+  orders.forEach(o=>{
+    o.items.forEach(item=>{
+      if(!mergedItems[item.id]){
+        mergedItems[item.id] = item.quantity;
+      } else {
+        mergedItems[item.id] += item.quantity;
+      }
+    });
+  });
+
+  // ===== PDF DESIGN =====
+
+  doc.rect(10,10,190,270); // border
+
+  doc.setFontSize(18);
+  doc.text(restaurantName,105,25,{align:"center"});
+
+  doc.setFontSize(12);
+  doc.text("Table: "+tableNumber,20,40);
+  doc.text("Date: "+new Date().toLocaleString(),20,48);
+
+  doc.line(15,55,195,55);
+
+  let y = 65;
+
+  doc.text("Item",20,y);
+  doc.text("Qty",120,y);
+  doc.text("Price",150,y);
+  doc.text("Total",175,y);
+
+  doc.line(15,y+3,195,y+3);
+  y += 12;
+
+  Object.keys(mergedItems).forEach(id=>{
+    const dish = allDishes.find(d=>d.id==id);
+    if(dish){
+      const qty = mergedItems[id];
+      const price = dish.price;
+      const total = price * qty;
+      grandTotal += total;
+
+      doc.text(dish.name,20,y);
+      doc.text(String(qty),120,y);
+      doc.text("₹"+price,150,y);
+      doc.text("₹"+total,175,y);
+
+      y += 10;
+    }
+  });
+
+  doc.line(15,y,195,y);
+  y += 12;
+
+  doc.setFontSize(14);
+  doc.text("Grand Total: ₹"+grandTotal,140,y);
+
+  y += 15;
+  doc.setFontSize(11);
+  doc.text("Thank You! Visit Again 🙏",105,y,{align:"center"});
+
+  doc.save(`${restaurantName}_Table${tableNumber}_Bill.pdf`);
 }
   
 </script>
