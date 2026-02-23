@@ -1093,8 +1093,8 @@
     // ============================================
     
     const defaultConfig = {
-      restaurant_name: 'Flavor Fusion',
-      tagline: 'Taste the Magic ✨'
+      restaurant_name: '',
+      tagline: ''
     };
 
    // ============================================
@@ -1145,6 +1145,11 @@ async function loadRestaurant() {
   }
 
   restaurantId = data.id;
+
+  onConfigChange({
+    restaurant_name: data.name,
+    tagline: data.tagline
+  });
 
   fetchDishes();
 }
