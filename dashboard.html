@@ -357,8 +357,19 @@ async function loadDishes(){
     box.innerHTML+=`
       <div class="card">
         <b>${d.name}</b> ₹${d.price}
+        ${d.is_available === false 
+          ? '<span style="color:#ef4444;font-weight:600;margin-left:10px;">(Unavailable)</span>' 
+          : ''}
+
+        <br><br>
+
         <button onclick="editDish('${d.id}')">Edit</button>
         <button onclick="deleteDish('${d.id}')">Delete</button>
+
+        <button onclick="toggleAvailability('${d.id}', ${d.is_available})"
+        style="background:${d.is_available ? '#ef4444' : '#22c55e'}">
+        ${d.is_available ? 'Mark Unavailable' : 'Mark Available'}
+        </button>
       </div>
     `;
   }
@@ -376,6 +387,21 @@ function editDish(id){
   });
 }
 
+async function toggleAvailability(id,currentStatus){
+  const { error } = await sb
+    .from("dishes")
+    .update({ is_available: !currentStatus })
+    .eq("id", id);
+
+  if(error){
+    alert("Update failed");
+    console.log(error);
+    return;
+  }
+
+  loadDishes();
+}
+
 async function saveDish(){
   const name=document.getElementById("name").value;
   const price=parseFloat(document.getElementById("price").value);
@@ -391,7 +417,14 @@ async function saveDish(){
     alert("Dish Updated Successfully ✅");
   }else{
     await sb.from("dishes")
-    .insert([{restaurant_id:RESTAURANT_ID,name,price,category,image}]);
+.insert([{
+  restaurant_id:RESTAURANT_ID,
+  name,
+  price,
+  category,
+  image,
+  is_available:true
+}]);
     alert("Dish Added Successfully ✅");
   }
 
