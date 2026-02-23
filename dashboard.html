@@ -480,6 +480,7 @@ async function downloadTodayReport(){
       .select("id,name");
 
     let csv = "Table,Items,Status,Total,Date\n";
+    let grandTotal = 0;
 
     orders.forEach(o => {
 
@@ -491,7 +492,7 @@ async function downloadTodayReport(){
           return dish ? dish.name + " x" + item.quantity : "";
         }).join(" | ");
       }
-
+grandTotal += o.total_amount;
       const formattedDate = new Date(o.created_at)
         .toLocaleString("en-IN");
 
@@ -503,6 +504,10 @@ async function downloadTodayReport(){
              "\n";
 
     });
+
+    csv += "\n";
+csv += "-----------------------------\n";
+csv += "Grand Total,,," + grandTotal + "\n";
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
