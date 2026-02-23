@@ -640,7 +640,7 @@ async function generateCompletedBill(){
     if(dish){
       const qty = mergedItems[id];
       const price = dish.price * qty;
-      itemsHTML += '${dish.name} x ${qty} = ₹${price}<br>';
+      itemsHTML += `${dish.name} x ${qty} = ₹${price}<br>`;
     }
   });
 
