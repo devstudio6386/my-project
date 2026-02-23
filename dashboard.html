@@ -665,44 +665,6 @@ async function generateCompletedBill(){
 
 }
 
-async function downloadBillPDF(tableNumber){
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  // Restaurant name fetch
-  const { data: restaurant } = await sb
-    .from("restaurants")
-    .select("name")
-    .eq("id", RESTAURANT_ID)
-    .single();
-
-  const restaurantName = restaurant.name;
-
-  const { data: orders } = await sb
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", RESTAURANT_ID)
-    .eq("table_number", tableNumber)
-    .eq("status","completed");
-
-  const { data: allDishes } = await sb
-    .from("dishes")
-    .select("id,name,price");
-
-  let mergedItems = {};
-  let grandTotal = 0;
-
-  orders.forEach(o=>{
-    o.items.forEach(item=>{
-      if(!mergedItems[item.id]){
-        mergedItems[item.id] = item.quantity;
-      } else {
-        mergedItems[item.id] += item.quantity;
-      }
-    });
-  });
-
   // ===== PDF DESIGN =====
 async function downloadBillPDF(tableNumber, total){
 
@@ -809,7 +771,7 @@ async function downloadBillPDF(tableNumber, total){
   doc.save(restaurantName + "_Table" + tableNumber + "_Bill.pdf");
 }
 
-}
+
   
 </script>
 
