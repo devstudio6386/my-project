@@ -605,13 +605,16 @@ async function generateCompletedBill(){
     alert("Enter table number");
     return;
   }
+const today = new Date();
+today.setHours(0,0,0,0);
 
-  const { data: orders } = await sb
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", RESTAURANT_ID)
-    .eq("table_number", tableNumber)
-    .eq("status","completed");
+const { data: orders } = await sb
+  .from("orders")
+  .select("*")
+  .eq("restaurant_id", RESTAURANT_ID)
+  .eq("table_number", tableNumber)
+  .eq("status","completed")
+  .gte("created_at", today.toISOString());
 
   if(!orders || orders.length === 0){
     document.getElementById("billResult").innerHTML =
@@ -680,13 +683,16 @@ async function downloadBillPDF(tableNumber, total){
   const restaurantName = restaurant?.name || "Restaurant";
 
   // Fetch completed orders
-  const { data: orders } = await sb
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", RESTAURANT_ID)
-    .eq("table_number", tableNumber)
-    .eq("status", "completed");
+ const today = new Date();
+today.setHours(0,0,0,0);
 
+const { data: orders } = await sb
+  .from("orders")
+  .select("*")
+  .eq("restaurant_id", RESTAURANT_ID)
+  .eq("table_number", tableNumber)
+  .eq("status","completed")
+  .gte("created_at", today.toISOString());
   if(!orders || orders.length === 0){
     alert("No completed orders found");
     return;
