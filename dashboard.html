@@ -19,22 +19,29 @@ body{
 h2{margin-bottom:20px;}
 
 .card{
-  background:#1e293b;
-  padding:20px;
-  border-radius:15px;
-  margin:15px 0;
-  border:1px solid #334155;
+  background:linear-gradient(145deg,#1e293b,#172033);
+  padding:24px;
+  border-radius:20px;
+  margin:18px 0;
+  border:1px solid rgba(255,255,255,0.05);
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
 }
 
 button{
-  padding:8px 16px;
+  padding:10px 18px;
   border:none;
-  border-radius:20px;
+  border-radius:25px;
   cursor:pointer;
   font-weight:600;
   background:linear-gradient(45deg,#ff4ecd,#4e73ff);
   color:#fff;
-  margin:5px 5px 0 0;
+  margin:6px 6px 0 0;
+  transition:.3s;
+}
+
+button:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
 }
 
 input{
@@ -55,10 +62,26 @@ input{
   flex-wrap:wrap;
 }
 
-#stats .card{
+.stat-card{
   flex:1;
   min-width:150px;
+  padding:25px;
+  border-radius:18px;
+  background:linear-gradient(145deg,#1e293b,#172033);
+  border:1px solid rgba(255,255,255,0.05);
+  box-shadow:0 15px 40px rgba(0,0,0,0.5);
   text-align:center;
+}
+
+.stat-card h2{
+  font-size:30px;
+  margin:0;
+}
+
+.stat-card p{
+  margin-top:8px;
+  font-size:14px;
+  color:#94a3b8;
 }
 
 #modules{
@@ -69,13 +92,20 @@ input{
 }
 
 .module-btn{
-  background:#1e293b;
-  padding:20px;
-  border-radius:15px;
+  background:linear-gradient(145deg,#1e293b,#172033);
+  padding:30px;
+  border-radius:20px;
   text-align:center;
   cursor:pointer;
-  border:1px solid #334155;
+  border:1px solid rgba(255,255,255,0.05);
   transition:.3s;
+  font-weight:600;
+  font-size:16px;
+}
+
+.module-btn:hover{
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px rgba(0,0,0,0.6);
 }
 
 .module-btn:hover{
@@ -84,6 +114,7 @@ input{
 
 .section{
   display:none;
+  margin-top: 40px;
 }
 
 .new-badge{
@@ -121,17 +152,59 @@ input{
   animation:slideIn .3s ease;
 }
 
+
+
+
 @keyframes slideIn{
   from{transform:translateX(100%);opacity:0;}
   to{transform:translateX(0);opacity:1;}
 }
+
+
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:30px;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:0.5px;
+}
+
+.live-indicator{
+  background:#0f1f17;
+  color:#22c55e;
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:13px;
+  border:1px solid #22c55e33;
+}
+
+.status-pending{color:#f97316;font-weight:600;}
+.status-preparing{color:#eab308;font-weight:600;
+}
+.status-served{color:#3b82f6;font-weight:600;}
+.status-completed{color:#22c55e;font-weight:600;
+}
+.status-billed{color:#a855f7;font-weight:600;}
 </style>
 </head>
 <body>
   <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
-<h2>🍴 Dashboard</h2>
+<div class="topbar">
+  <div class="logo">
+    🍴 <span>Restaurant Admin</span>
+  </div>
+  <div class="live-indicator">
+    ● Live
+  </div>
+</div>
 
 <div id="stats"></div>
 
@@ -291,7 +364,7 @@ const { data: orders } = await sb.from("orders")
   ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
 </b><br>
         ${itemsHTML}
-        <br>Status: ${o.status}
+        <br>Status: <span class="status-${o.status}">${o.status}</span>
         <br>Total: ₹${o.total_amount}<br>
         <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
         <button onclick="updateStatus('${o.id}','served')">Served</button>
@@ -328,11 +401,26 @@ else if(o.status==="pending" || o.status==="preparing" || o.status==="served") p
   });
 
   document.getElementById("stats").innerHTML=`
-    <div class="card"><b>₹${revenue}</b><br>Revenue Today</div>
-    <div class="card"><b>${orders.length}</b><br>Total Orders</div>
-    <div class="card"><b>${completed}</b><br>Completed</div>
-    <div class="card"><b>${pending}</b><br>Pending</div>
-  `;
+  <div class="stat-card">
+    <h2>₹${revenue}</h2>
+    <p>Revenue Today</p>
+  </div>
+
+  <div class="stat-card">
+    <h2>${orders.length}</h2>
+    <p>Total Orders</p>
+  </div>
+
+  <div class="stat-card">
+    <h2>${completed}</h2>
+    <p>Completed</p>
+  </div>
+
+  <div class="stat-card">
+    <h2>${pending}</h2>
+    <p>Active Orders</p>
+  </div>
+`;
 }
 
 /* ===== WAITER ===== */
