@@ -1173,7 +1173,16 @@ console.log("Current table:", tableNumber);
 
 async function loadRestaurant() {
 
-  const restaurantSlug = window.location.pathname.split("/")[1];
+  let restaurantSlug;
+
+const params = new URLSearchParams(window.location.search);
+const redirectPath = params.get("redirect");
+
+if (redirectPath) {
+  restaurantSlug = redirectPath.split("/")[1];
+} else {
+  restaurantSlug = window.location.pathname.split("/")[1];
+}
 
   if (!restaurantSlug) {
     console.error("No restaurant slug found in URL");
