@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchen Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background:#0f172a;
+  color:#fff;
+  padding:20px;
+}
+
+.card{
+  background:#1e293b;
+  padding:20px;
+  border-radius:15px;
+  margin:15px 0;
+  border:1px solid #334155;
+}
+
+button{
+  padding:8px 14px;
+  border:none;
+  border-radius:20px;
+  cursor:pointer;
+  font-weight:600;
+  margin-right:10px;
+  background:linear-gradient(45deg,#ff4ecd,#4e73ff);
+  color:#fff;
+}
+
+.new-badge{
+  background:#ef4444;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
+  margin-left:10px;
+}
+
+#toast-container{
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:9999;
+}
+
+.toast{
+  padding:12px 16px;
+  border-radius:10px;
+  color:#fff;
+  margin-bottom:10px;
+  font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<h2>🍳 Kitchen Panel</h2>
+
+<h3>🛒 Live Orders</h3>
+<div id="orders"></div>
+
+<h3>🔔 Waiter Calls</h3>
+<div id="waiters"></div>
+
+<script>
+
+const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let RESTAURANT_ID = null;
+
+const params = new URLSearchParams(window.location.search);
+const restaurantSlug = params.get("slug");
+
+const orderSound = new Audio("notification.mpeg");
+const waiterSound = new Audio("waiter.mpeg");
+
+function showToast(message,color){
+  const container=document.getElementById("toast-container");
+  const toast=document.createElement("div");
+  toast.className="toast";
+  toast.style.background=color;
+  toast.innerText=message;
+  container.appendChild(toast);
+  setTimeout(()=>{toast.remove();},4000);
+}
+
+async function loadRestaurantId(){
+  const { data } = await sb
+    .from("restaurants")
+    .select("id")
+    .eq("slug", restaurantSlug)
+    .single();
+
+  RESTAURANT_ID = data.id;
+  loadOrders();
+  loadWaiters();
+}
+
+async function loadOrders(){
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const { data: orders } = await sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .gte("created_at", today.toISOString())
+    .order("created_at", { ascending: false });
+
+  const box = document.getElementById("orders");
+  box.innerHTML = "";
+
+  if(!orders || orders.length === 0){
+    box.innerHTML = "No orders";
+    return;
+  }
+
+  const { data: dishes } = await sb
+    .from("dishes")
+    .select("id,name");
+
+  orders.forEach(o => {
+
+    let itemsHTML = "";
+
+    if(o.items){
+      o.items.forEach(item=>{
+        const dish = dishes.find(d=>d.id===item.id);
+        if(dish){
+          itemsHTML += dish.name + " × " + item.quantity + "<br>";
+        }
+      });
+    }
+
+    box.innerHTML += `
+      <div class="card">
+        <b>
+          Table ${o.table_number}
+          ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
+        </b>
+        <br><br>
+        ${itemsHTML}
+        <br>Status: ${o.status}
+        <br><br>
+
+        ${o.status !== "served" ? `
+          <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
+          <button onclick="updateStatus('${o.id}','served')">Served</button>
+        ` : ''}
+      </div>
+    `;
+  });
+}
+
+async function updateStatus(id,status){
+  await sb.from("orders").update({status}).eq("id",id);
+  loadOrders();
+}
+
+async function loadWaiters(){
+  const { data } = await sb
+    .from("waiter_calls")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("status","pending");
+
+  const box=document.getElementById("waiters");
+  box.innerHTML="";
+
+  if(!data || data.length===0){
+    box.innerHTML="No waiter calls";
+    return;
+  }
+
+  data.forEach(w=>{
+    box.innerHTML += `
+      <div class="card">
+        Table ${w.table_number}
+        <button onclick="doneWaiter('${w.id}')">Done</button>
+      </div>
+    `;
+  });
+}
+
+async function doneWaiter(id){
+  await sb.from("waiter_calls").update({status:"served"}).eq("id",id);
+  loadWaiters();
+}
+
+loadRestaurantId();
+
+
+// REALTIME ORDERS
+sb.channel('kitchen-orders')
+  .on('postgres_changes',
+    { event: 'INSERT', schema: 'public', table: 'orders' },
+    payload => {
+      if(payload.new.restaurant_id === RESTAURANT_ID){
+        showToast("🔥 New Order!","#22c55e");
+        orderSound.play().catch(()=>{});
+        loadOrders();
+      }
+    }
+  )
+  .subscribe();
+
+
+// REALTIME WAITER
+sb.channel('kitchen-waiter')
+  .on('postgres_changes',
+    { event: '*', schema: 'public', table: 'waiter_calls' },
+    payload => {
+      if(payload.new.restaurant_id === RESTAURANT_ID){
+        showToast("🔔 Waiter Called!","#f97316");
+        waiterSound.play().catch(()=>{});
+        loadWaiters();
+      }
+    }
+  )
+  .subscribe();
+
+</script>
+
+</body>
+</html>
