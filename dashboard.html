@@ -192,7 +192,8 @@ input{
 }
 .status-billed{color:#a855f7;font-weight:600;}
 </style>
-
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
 </head>
 <body>
   <!-- TOAST CONTAINER -->
@@ -883,7 +884,12 @@ const { data: orders } = await sb
 
   
 </script>
-
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js")
+    .then(() => console.log("Service Worker Registered"))
+    .catch(err => console.log("SW Error:", err));
+}
 </script>
 </body>
 </html>

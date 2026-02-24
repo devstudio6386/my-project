@@ -1065,7 +1065,8 @@
   <style>body { box-sizing: border-box; }</style>
   <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
  </head>
  <body>
   <div class="app-wrapper"><!-- Animated Background Elements -->
@@ -1684,6 +1685,12 @@ document.getElementById('waiter-confirm').addEventListener('click', async () => 
 
 
   </script>
- 
+  <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js")
+    .then(() => console.log("Service Worker Registered"))
+    .catch(err => console.log("SW Error:", err));
+}
+</script>
 </body>
 </html>
