@@ -324,7 +324,7 @@ async function loadStats(){
   orders.forEach(o=>{
     revenue+=o.total_amount;
     if(o.status==="completed") completed++;
-    else pending++;
+else if(o.status==="pending" || o.status==="preparing" || o.status==="served") pending++;
   });
 
   document.getElementById("stats").innerHTML=`
@@ -665,7 +665,13 @@ const { data: orders } = await sb
   </button>
 </div>
 `;
-
+await sb
+  .from("orders")
+  .update({ status: "billed" })
+  .eq("restaurant_id", RESTAURANT_ID)
+  .eq("table_number", tableNumber)
+  .eq("status","completed")
+  .gte("created_at", today.toISOString());
 }
 
   // ===== PDF DESIGN =====
