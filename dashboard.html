@@ -232,7 +232,7 @@ input{
 <div id="orderManagement" class="section">
   <h3>📊 Today Orders</h3>
   <button onclick="downloadTodayReport()">Download Today Report</button>
-  <div id="todayOrders"></div>
+  <div id="orders"></div>
 </div>
 
 <!-- MANAGE DASHBOARD -->
@@ -257,43 +257,7 @@ input{
 
   <div id="billResult" style="margin-top:20px;"></div>
 </div>
-<!-- ACTIVE -->
-<div id="activeSection" class="section">
-<h3>🟢 Active Orders</h3>
-<div id="activeOrders"></div>
-</div>
 
-<!-- COMPLETED -->
-<div id="completedSection" class="section">
-<h3>🟡 Completed Orders</h3>
-<div id="completedOrders"></div>
-</div>
-
-<!-- HISTORY -->
-<div id="historySection" class="section">
-
-<h3>📜 Billed History</h3>
-
-<input type="date" id="historyDate">
-<input placeholder="Search table" id="historySearch">
-
-<button onclick="loadHistory()">Filter</button>
-
-<div id="historyOrders"></div>
-
-</div>
-
-<!-- REVENUE -->
-<div id="revenueSection" class="section">
-<h3>💰 Revenue Breakdown</h3>
-
-<button onclick="loadRevenue('today')">Today</button>
-<button onclick="loadRevenue('week')">This Week</button>
-<button onclick="loadRevenue('month')">This Month</button>
-<button onclick="loadRevenue('all')">All Time</button>
-
-<div id="revenueBox"></div>
-</div>
 <script>
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yuYnLF5mlIXpr8gFJ7_p2Q_ob1Ub51F";
@@ -391,8 +355,6 @@ const { data: orders } = await sb.from("orders")
 
   const box=document.getElementById("orders");
   box.innerHTML="";
-  const todayBox=document.getElementById("todayOrders");
-if(todayBox) todayBox.innerHTML="";
   if(!orders||orders.length===0){box.innerHTML="No orders";return;}
 
   const {data:allDishes}=await sb.from("dishes").select("id,name");
@@ -407,7 +369,6 @@ if(todayBox) todayBox.innerHTML="";
     }
 
     box.innerHTML+=`
-    
   <div class="card">
     <b>
 Table ${o.table_number}
@@ -451,17 +412,6 @@ Completed
 
   </div>
 `;
-
-
-if(todayBox && o.status==="billed"){
-todayBox.innerHTML+=`
-<div class="card">
-<b>Table ${o.table_number}</b><br>
-${itemsHTML}
-<br>Total ₹${o.total_amount}
-</div>
-`
-}
   }
 
   loadStats();
@@ -502,45 +452,31 @@ async function loadStats(){
 
   let revenue=0,pending=0,completed=0;
   orders.forEach(o=>{
-
-if(o.status==="billed"){
-revenue+=o.total_amount;
-}
-
-if(o.status==="completed") completed++;
-
-else if(o.status==="pending" || o.status==="preparing" || o.status==="served")
-pending++;
-
-});
- 
+    revenue+=o.total_amount;
+    if(o.status==="completed") completed++;
+else if(o.status==="pending" || o.status==="preparing" || o.status==="served") pending++;
+  });
 
   document.getElementById("stats").innerHTML=`
+  <div class="stat-card">
+    <h2>₹${revenue}</h2>
+    <p>Revenue Today</p>
+  </div>
 
-<div class="stat-card" onclick="openRevenue()">
-  <h2>₹${revenue}</h2>
-  <p>Revenue Today</p>
-</div>
+  <div class="stat-card">
+    <h2>${orders.length}</h2>
+    <p>Total Orders</p>
+  </div>
 
-<div class="stat-card" onclick="showSection('orderManagement')">
-  <h2>${orders.length}</h2>
-  <p>Today Orders</p>
-</div>
+  <div class="stat-card">
+    <h2>${completed}</h2>
+    <p>Completed</p>
+  </div>
 
-<div class="stat-card" onclick="openHistory()">
-  <h2>Click</h2>
-  <p>Order History</p>
-</div>
-<div class="stat-card" onclick="openCompleted()">
-  <h2>${completed}</h2>
-  <p>Completed</p>
-</div>
-
-<div class="stat-card" onclick="openActive()">
-  <h2>${pending}</h2>
-  <p>Active Orders</p>
-</div>
-
+  <div class="stat-card">
+    <h2>${pending}</h2>
+    <p>Active Orders</p>
+  </div>
 `;
 }
 
@@ -991,245 +927,9 @@ if(!orders || orders.length === 0){
   doc.save(restaurantName + "_Table" + tableNumber + "_Bill.pdf");
 }
 
-/* ACTIVE */
-async function openActive(){
 
-showSection("activeSection")
-
-const {data}=await sb
-.from("orders")
-.select("*")
-.eq("restaurant_id",RESTAURANT_ID)
-.in("status",["pending","preparing","served"])
-.order("created_at",{ascending:false})
-
-let html=""
-
-if(!data || data.length==0){
-html="No active orders"
-}
-
-data.forEach(o=>{
-html+=`
-<div class="card">
-<b>Table ${o.table_number}</b>
-<br>Status: ${o.status}
-<br>Total: ₹${o.total_amount}
-</div>
-`
-})
-
-document.getElementById("activeOrders").innerHTML=html
-
-}
-
-/* COMPLETED */
-async function openCompleted(){
-
-showSection("completedSection")
-
-const {data}=await sb
-.from("orders")
-.select("*")
-.eq("restaurant_id",RESTAURANT_ID)
-.eq("status","completed")
-.order("created_at",{ascending:false})
-
-let html=""
-
-data.forEach(o=>{
-html+=`
-<div class="card">
-Table ${o.table_number}
-<br>₹${o.total_amount}
-</div>
-`
-})
-
-document.getElementById("completedOrders").innerHTML=html
-
-}
-
-
-/* HISTORY */
-async function openHistory(){
-
-showSection("historySection")
-
-loadHistory()
-
-}
-
-
-
-async function loadHistory(){
-
-  const date = document.getElementById("historyDate").value;
-  const search = document.getElementById("historySearch").value;
-
-  let query = sb
-    .from("orders")
-    .select("*")
-    .eq("restaurant_id", RESTAURANT_ID)
-    .eq("status", "billed");
-
-  if(date){
-
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-
-    const end = new Date(date);
-    end.setHours(23,59,59,999);
-
-    query = query
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString());
-
-  }
-
-  const { data: orders, error } = await query.order("created_at",{ascending:false});
-
-  if(error){
-    console.log(error);
-    return;
-  }
-
-  const { data: dishes } = await sb
-    .from("dishes")
-    .select("id,name,price");
-
-  let html = "";
-
-  if(orders && orders.length){
-
-    orders.forEach(o=>{
-
-      if(search && !o.table_number.toString().includes(search))
-        return;
-
-      let itemsHTML = "";
-
-      if(o.items && dishes){
-
-        o.items.forEach(item=>{
-
-          const dish = dishes.find(d=>d.id == item.id);
-
-          if(dish){
-            itemsHTML += dish.name + " × " + item.quantity + "<br>";
-          }
-
-        });
-
-      }
-
-      html += `
-      <div class="card">
-
-        <b>Table ${o.table_number}</b>
-
-        <br><br>
-
-        ${itemsHTML}
-
-        <hr>
-
-        <b>Total ₹${o.total_amount}</b>
-
-        <br>
-
-        ${new Date(o.created_at).toLocaleString()}
-
-      </div>
-      `;
-
-    });
-
-  }
-
-  if(html === ""){
-    html = "No billed orders";
-  }
-
-  document.getElementById("historyOrders").innerHTML = html;
-
-}
-
-/* REVENUE */
-async function openRevenue(){
-showSection("revenueSection")
-loadRevenue("today")
-}
-
-async function loadRevenue(type){
-
-let query=sb
-.from("orders")
-.select("*")
-.eq("restaurant_id",RESTAURANT_ID)
-.eq("status","billed")
-
-const now=new Date()
-
-if(type==="today"){
-const start=new Date()
-start.setHours(0,0,0,0)
-query=query.gte("created_at",start.toISOString())
-}
-
-if(type==="week"){
-const start=new Date()
-start.setDate(now.getDate()-7)
-query=query.gte("created_at",start.toISOString())
-}
-
-if(type==="month"){
-const start=new Date()
-start.setMonth(now.getMonth())
-start.setDate(1)
-start.setHours(0,0,0,0)
-query=query.gte("created_at",start.toISOString())
-}
-
-const {data:orders}=await query
-
-const {data:dishes}=await sb.from("dishes").select("*")
-
-let map={}
-
-orders.forEach(o=>{
-o.items.forEach(i=>{
-if(!map[i.id]) map[i.id]=0
-map[i.id]+=i.quantity
-})
-})
-
-let html=""
-let grand=0
-
-Object.keys(map).forEach(id=>{
-const d=dishes.find(x=>x.id==id)
-const qty=map[id]
-const total=qty*d.price
-grand+=total
-
-html+=`
-<div class="card">
-${d.name}
-<br>Qty: ${qty}
-<br>Revenue: ₹${total}
-</div>`
-})
-
-html+=<div class="card"><b>Total Revenue ₹${grand}</b></div>
-
-document.getElementById("revenueBox").innerHTML=html
-}
   
 </script>
-
-
-
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js")
