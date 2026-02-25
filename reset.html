@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
   <title>Reset Password</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -44,8 +47,7 @@
       cursor: pointer;
     }
   </style>
-  <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0f172a">
+
 </head>
 <body>
 
@@ -84,12 +86,6 @@ async function updatePassword() {
 }
 
 </script>
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js")
-    .then(() => console.log("Service Worker Registered"))
-    .catch(err => console.log("SW Error:", err));
-}
-</script>
+
 </body>
 </html>
