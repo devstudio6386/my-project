@@ -310,6 +310,7 @@ if (restaurantSlug) {
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+let CURRENT_BILL_ORDERS = [];
 
 /* ===== TOAST FUNCTION ===== */
 function showToast(message,color){
@@ -765,7 +766,10 @@ const { data: orders } = await sb
     document.getElementById("billResult").innerHTML =
       "No completed orders for this table";
     return;
+    
   }
+
+  CURRENT_BILL_ORDERS = orders;
 
   const { data: allDishes } = await sb
     .from("dishes")
@@ -837,20 +841,12 @@ async function downloadBillPDF(tableNumber, total){
   const restaurantName = restaurant?.name || "Restaurant";
 
   // Fetch completed orders
- const today = new Date();
-today.setHours(0,0,0,0);
+const orders = CURRENT_BILL_ORDERS;
 
-const { data: orders } = await sb
-  .from("orders")
-  .select("*")
-  .eq("restaurant_id", RESTAURANT_ID)
-  .eq("table_number", tableNumber)
-  .eq("status","billed")
-  .gte("created_at", today.toISOString());;
-  if(!orders || orders.length === 0){
-   alert("No billed orders found");
-    return;
-  }
+if(!orders || orders.length === 0){
+  alert("No bill generated");
+  return;
+}
 
   const { data: allDishes } = await sb
     .from("dishes")
