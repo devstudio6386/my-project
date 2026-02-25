@@ -379,25 +379,35 @@ ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
     <br>Status: <span class="status-${o.status}">${o.status}</span>
     <br>Total: ₹${o.total_amount}<br>
 
-    ${o.status === "billed" ? `
-      <span style="color:#a855f7;font-weight:700;">
-      ✅ Billed
-      </span>
-    ` : `
-      <button onclick="updateStatus('${o.id}','preparing')">
-      Preparing
-      </button>
+   ${o.status === "billed"
+? `
+<span style="color:#a855f7;font-weight:700;">
+✅ Billed
+</span>
+`
+: `
+<button onclick="updateStatus('${o.id}','preparing')">
+Preparing
+</button>
 
-      <button onclick="updateStatus('${o.id}','served')">
-      Served
-      </button>
+<button onclick="updateStatus('${o.id}','served')">
+Served
+</button>
 
-      ${o.status !== "completed" ? `
-      <button onclick="updateStatus('${o.id}','completed')">
-      Completed
-      </button>
-      ` : ``}
-    `}
+${o.status !== "completed"
+? `
+<button onclick="updateStatus('${o.id}','completed')">
+Completed
+</button>
+`
+: `
+<span style="color:#22c55e;font-weight:700;">
+✅ Ready for Billing
+</span>
+`
+}
+`
+}
 
   </div>
 `;
@@ -747,9 +757,9 @@ const { data: orders } = await sb
   .select("*")
   .eq("restaurant_id", RESTAURANT_ID)
   .eq("table_number", tableNumber)
-  .eq("status","billed")
+  .eq("status","completed")
   .gte("created_at", today.toISOString());
-  await downloadBillPDF(tableNumber);
+  
 
   if(!orders || orders.length === 0){
     document.getElementById("billResult").innerHTML =
@@ -807,6 +817,7 @@ await sb
   .eq("table_number", tableNumber)
   .eq("status","completed")
   .gte("created_at", today.toISOString());
+  await downloadBillPDF(tableNumber);
 }
 
   // ===== PDF DESIGN =====
