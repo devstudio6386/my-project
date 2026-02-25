@@ -815,9 +815,11 @@ await sb
   .update({ status: "billed" })
   .eq("restaurant_id", RESTAURANT_ID)
   .eq("table_number", tableNumber)
-  .eq("status","completed")
+  .eq("status", "completed")
   .gte("created_at", today.toISOString());
-  await downloadBillPDF(tableNumber);
+
+await loadOrders();        // 🔥 instant UI refresh
+await downloadBillPDF(tableNumber);
 }
 
   // ===== PDF DESIGN =====
