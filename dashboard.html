@@ -232,7 +232,7 @@ input{
 <div id="orderManagement" class="section">
   <h3>📊 Today Orders</h3>
   <button onclick="downloadTodayReport()">Download Today Report</button>
-  <div id="orders"></div>
+  <div id="todayOrders"></div>
 </div>
 
 <!-- MANAGE DASHBOARD -->
@@ -390,10 +390,18 @@ const { data: orders } = await sb.from("orders")
 .gte("created_at", today.toISOString())
 .order("created_at", { ascending: false });
 
-  const box=document.getElementById("orders");
-  box.innerHTML="";
-  if(!orders||orders.length===0){box.innerHTML="No orders";return;}
+  const liveBox = document.getElementById("orders");
+const todayBox = document.getElementById("todayOrders");
 
+liveBox.innerHTML="";
+
+if(todayBox){
+  todayBox.innerHTML="";
+}
+  if(!orders||orders.length===0){
+liveBox.innerHTML="No orders";
+return;
+}
   const {data:allDishes}=await sb.from("dishes").select("id,name");
 
   for(let o of orders){
@@ -405,7 +413,7 @@ const { data: orders } = await sb.from("orders")
       }
     }
 
-    box.innerHTML+=`
+    const orderHTML =`
   <div class="card">
     <b>
 Table ${o.table_number}
@@ -449,6 +457,12 @@ Completed
 
   </div>
 `;
+
+liveBox.innerHTML += orderHTML;
+
+if(todayBox){
+todayBox.innerHTML += orderHTML;
+}
   }
 
   loadStats();
