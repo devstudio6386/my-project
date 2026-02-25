@@ -368,26 +368,62 @@ const { data: orders } = await sb.from("orders")
     }
 
     box.innerHTML+=`
-      <div class="card">
-        <b>
-  Table ${o.table_number}
-  ${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
+  <div class="card">
+    <b>
+Table ${o.table_number}
+${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
 </b><br>
-        ${itemsHTML}
-        <br>Status: <span class="status-${o.status}">${o.status}</span>
-        <br>Total: ₹${o.total_amount}<br>
-        <button onclick="updateStatus('${o.id}','preparing')">Preparing</button>
-        <button onclick="updateStatus('${o.id}','served')">Served</button>
-        <button onclick="updateStatus('${o.id}','completed')">Completed</button>
-      </div>
-    `;
+
+    ${itemsHTML}
+
+    <br>Status: <span class="status-${o.status}">${o.status}</span>
+    <br>Total: ₹${o.total_amount}<br>
+
+    ${o.status === "billed" ? `
+      <span style="color:#a855f7;font-weight:700;">
+      ✅ Billed
+      </span>
+    ` : `
+      <button onclick="updateStatus('${o.id}','preparing')">
+      Preparing
+      </button>
+
+      <button onclick="updateStatus('${o.id}','served')">
+      Served
+      </button>
+
+      ${o.status !== "completed" ? `
+      <button onclick="updateStatus('${o.id}','completed')">
+      Completed
+      </button>
+      ` : ``}
+    `}
+
+  </div>
+`;
   }
 
   loadStats();
 }
 
 async function updateStatus(id,status){
-  await sb.from("orders").update({status}).eq("id",id);
+
+  const { data } = await sb
+    .from("orders")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if(data.status === "billed"){
+    alert("Already billed. Cannot change.");
+    return;
+  }
+
+  await sb
+    .from("orders")
+    .update({status})
+    .eq("id",id);
+
   loadOrders();
 }
 
@@ -711,8 +747,9 @@ const { data: orders } = await sb
   .select("*")
   .eq("restaurant_id", RESTAURANT_ID)
   .eq("table_number", tableNumber)
-  .eq("status","completed")
+  .eq("status","billed")
   .gte("created_at", today.toISOString());
+  await downloadBillPDF(tableNumber);
 
   if(!orders || orders.length === 0){
     document.getElementById("billResult").innerHTML =
@@ -795,10 +832,10 @@ const { data: orders } = await sb
   .select("*")
   .eq("restaurant_id", RESTAURANT_ID)
   .eq("table_number", tableNumber)
-  .eq("status","completed")
-  .gte("created_at", today.toISOString());
+  .eq("status","billed")
+  .gte("created_at", today.toISOString());;
   if(!orders || orders.length === 0){
-    alert("No completed orders found");
+   alert("No billed orders found");
     return;
   }
 
