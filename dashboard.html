@@ -381,57 +381,87 @@ function showSection(id){
 
 /* ===== ORDERS ===== */
 async function loadOrders(){
-  const today = new Date();
-today.setHours(0,0,0,0); // raat 12 se start
 
-const { data: orders } = await sb.from("orders")
+// ===== LIVE ORDERS (ONLY ACTIVE STATUSES) =====
+const { data: liveOrders } = await sb
+.from("orders")
+.select("*")
+.eq("restaurant_id", RESTAURANT_ID)
+.in("status",["pending","preparing","served"])
+.order("created_at",{ ascending:false })
+
+
+// ===== TODAY ORDERS (ONLY TODAY DATE) =====
+const today = new Date()
+today.setHours(0,0,0,0)
+
+const { data: todayOrders } = await sb
+.from("orders")
 .select("*")
 .eq("restaurant_id", RESTAURANT_ID)
 .gte("created_at", today.toISOString())
-.order("created_at", { ascending: false });
+.order("created_at",{ ascending:false })
 
-  const liveBox = document.getElementById("orders");
-const todayBox = document.getElementById("todayOrders");
 
-liveBox.innerHTML="";
+const liveBox = document.getElementById("orders")
+const todayBox = document.getElementById("todayOrders")
 
+liveBox.innerHTML=""
 if(todayBox){
-  todayBox.innerHTML="";
+todayBox.innerHTML=""
 }
-  if(!orders||orders.length===0){
-liveBox.innerHTML="No orders";
-return;
+
+
+// dishes lookup
+const {data:allDishes}=await sb
+.from("dishes")
+.select("id,name")
+
+
+// ===== SHOW LIVE ORDERS =====
+if(liveOrders && liveOrders.length){
+
+for(let o of liveOrders){
+
+let itemsHTML=""
+
+if(o.items){
+
+for(let item of o.items){
+
+const dish=allDishes.find(d=>d.id===item.id)
+
+if(dish){
+itemsHTML+=dish.name+" × "+item.quantity+"<br>"
 }
-  const {data:allDishes}=await sb.from("dishes").select("id,name");
 
-  for(let o of orders){
-    let itemsHTML="";
-    if(o.items){
-      for(let item of o.items){
-        const dish=allDishes.find(d=>d.id===item.id);
-        if(dish) itemsHTML+=dish.name+" × "+item.quantity+"<br>";
-      }
-    }
+}
 
-    const orderHTML =`
-  <div class="card">
-    <b>
+}
+
+const orderHTML=`
+<div class="card">
+
+<b>
 Table ${o.table_number}
-${o.status === "pending" ? '<span class="new-badge">NEW</span>' : ''}
-</b><br>
+${o.status === "pending"
+? '<span class="new-badge">NEW</span>'
+: ''}
+</b>
 
-    ${itemsHTML}
+<br><br>
 
-    <br>Status: <span class="status-${o.status}">${o.status}</span>
-    <br>Total: ₹${o.total_amount}<br>
+${itemsHTML}
 
-   ${o.status === "billed"
-? `
-<span style="color:#a855f7;font-weight:700;">
-✅ Billed
+<br>Status:
+<span class="status-${o.status}">
+${o.status}
 </span>
-`
-: `
+
+<br>Total: ₹${o.total_amount}
+
+<br><br>
+
 <button onclick="updateStatus('${o.id}','preparing')">
 Preparing
 </button>
@@ -440,34 +470,92 @@ Preparing
 Served
 </button>
 
-${o.status !== "completed"
-? `
 <button onclick="updateStatus('${o.id}','completed')">
 Completed
 </button>
+
+</div>
 `
-: `
-<span style="color:#22c55e;font-weight:700;">
-✅ Ready for Billing
+
+liveBox.innerHTML+=orderHTML
+
+}
+
+}else{
+
+liveBox.innerHTML="No live orders"
+
+}
+
+
+
+// ===== SHOW TODAY ORDERS =====
+if(todayOrders && todayOrders.length){
+
+for(let o of todayOrders){
+
+let itemsHTML=""
+
+if(o.items){
+
+for(let item of o.items){
+
+const dish=allDishes.find(d=>d.id===item.id)
+
+if(dish){
+itemsHTML+=dish.name+" × "+item.quantity+"<br>"
+}
+
+}
+
+}
+
+const orderHTML=`
+<div class="card">
+
+<b>Table ${o.table_number}</b>
+
+<br><br>
+
+${itemsHTML}
+
+<br>Status:
+<span class="status-${o.status}">
+${o.status}
+</span>
+
+<br>Total: ₹${o.total_amount}
+
+${o.status==="billed"
+? `
+<br>
+<span style="color:#a855f7;font-weight:700;">
+✅ Billed
 </span>
 `
-}
+: ""}
+
+</div>
 `
-}
-
-  </div>
-`;
-
-liveBox.innerHTML += orderHTML;
 
 if(todayBox){
-todayBox.innerHTML += orderHTML;
-}
-  }
-
-  loadStats();
+todayBox.innerHTML+=orderHTML
 }
 
+}
+
+}else{
+
+if(todayBox){
+todayBox.innerHTML="No orders today"
+}
+
+}
+
+
+loadStats()
+
+}
 async function updateStatus(id,status){
 
   const { data } = await sb
