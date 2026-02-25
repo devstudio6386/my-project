@@ -232,7 +232,7 @@ input{
 <div id="orderManagement" class="section">
   <h3>📊 Today Orders</h3>
   <button onclick="downloadTodayReport()">Download Today Report</button>
-  <div id="orders"></div>
+  <div id="todayOrders"></div>
 </div>
 
 <!-- MANAGE DASHBOARD -->
@@ -385,6 +385,8 @@ const { data: orders } = await sb.from("orders")
 
   const box=document.getElementById("orders");
   box.innerHTML="";
+  const todayBox=document.getElementById("todayOrders");
+if(todayBox) todayBox.innerHTML="";
   if(!orders||orders.length===0){box.innerHTML="No orders";return;}
 
   const {data:allDishes}=await sb.from("dishes").select("id,name");
@@ -399,6 +401,7 @@ const { data: orders } = await sb.from("orders")
     }
 
     box.innerHTML+=`
+    
   <div class="card">
     <b>
 Table ${o.table_number}
@@ -442,6 +445,17 @@ Completed
 
   </div>
 `;
+
+
+if(todayBox && o.status==="billed"){
+todayBox.innerHTML+=`
+<div class="card">
+<b>Table ${o.table_number}</b><br>
+${itemsHTML}
+<br>Total ₹${o.total_amount}
+</div>
+`
+}
   }
 
   loadStats();
