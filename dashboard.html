@@ -1040,53 +1040,96 @@ loadHistory()
 
 async function loadHistory(){
 
-const date=document.getElementById("historyDate").value
-const search=document.getElementById("historySearch").value
+  const date = document.getElementById("historyDate").value;
+  const search = document.getElementById("historySearch").value;
 
-let query=sb
-.from("orders")
-.select("*")
-.eq("restaurant_id",RESTAURANT_ID)
-.eq("status","billed")
+  let query = sb
+    .from("orders")
+    .select("*")
+    .eq("restaurant_id", RESTAURANT_ID)
+    .eq("status", "billed");
 
+  if(date){
 
-if(date){
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
 
-const start=new Date(date)
-start.setHours(0,0,0,0)
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
 
-const end=new Date(date)
-end.setHours(23,59,59,999)
+    query = query
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
 
-query=query
-.gte("created_at",start.toISOString())
-.lte("created_at",end.toISOString())
+  }
+
+  const { data: orders, error } = await query.order("created_at",{ascending:false});
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  const { data: dishes } = await sb
+    .from("dishes")
+    .select("id,name,price");
+
+  let html = "";
+
+  if(orders && orders.length){
+
+    orders.forEach(o=>{
+
+      if(search && !o.table_number.toString().includes(search))
+        return;
+
+      let itemsHTML = "";
+
+      if(o.items && dishes){
+
+        o.items.forEach(item=>{
+
+          const dish = dishes.find(d=>d.id == item.id);
+
+          if(dish){
+            itemsHTML += dish.name + " × " + item.quantity + "<br>";
+          }
+
+        });
+
+      }
+
+      html += `
+      <div class="card">
+
+        <b>Table ${o.table_number}</b>
+
+        <br><br>
+
+        ${itemsHTML}
+
+        <hr>
+
+        <b>Total ₹${o.total_amount}</b>
+
+        <br>
+
+        ${new Date(o.created_at).toLocaleString()}
+
+      </div>
+      `;
+
+    });
+
+  }
+
+  if(html === ""){
+    html = "No billed orders";
+  }
+
+  document.getElementById("historyOrders").innerHTML = html;
 
 }
-
-const {data}=await query.order("created_at",{ascending:false})
-
-let html=""
-
-data.forEach(o=>{
-
-if(search && !o.table_number.toString().includes(search))
-return
-
-html+=`
-<div class="card">
-Table ${o.table_number}
-<br>₹${o.total_amount}
-<br>${new Date(o.created_at).toLocaleString()}
-</div>
-`
-
-})
-
-document.getElementById("historyOrders").innerHTML=html
-
-}
-
 
 /* REVENUE */
 async function openRevenue(){
