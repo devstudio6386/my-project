@@ -470,54 +470,79 @@ async function updateStatus(id,status){
 
 /* ===== STATS ===== */
 async function loadStats(){
-  const today=new Date();
-  today.setHours(0,0,0,0);
 
-  const {data:orders}=await sb.from("orders")
-    .select("*")
-    .eq("restaurant_id",RESTAURANT_ID)
-    .gte("created_at",today.toISOString());
+const today=new Date();
+today.setHours(0,0,0,0);
 
-  if(!orders)return;
+// TODAY ORDERS
+const {data:orders}=await sb
+.from("orders")
+.select("*")
+.eq("restaurant_id",RESTAURANT_ID)
+.gte("created_at",today.toISOString());
 
-  let revenue=0,pending=0,completed=0;
-  orders.forEach(o=>{
+// HISTORY (ALL BILLED)
+const {data:historyOrders}=await sb
+.from("orders")
+.select("id")
+.eq("restaurant_id",RESTAURANT_ID)
+.eq("status","billed");
+
+if(!orders) return;
+
+let revenue=0;
+let pending=0;
+let completed=0;
+
+orders.forEach(o=>{
 
 if(o.status==="billed"){
 revenue+=o.total_amount;
 }
 
-if(o.status==="completed") completed++;
+if(o.status==="completed"){
+completed++;
+}
 
-else if(o.status==="pending" || o.status==="preparing" || o.status==="served")
+else if(
+o.status==="pending" ||
+o.status==="preparing" ||
+o.status==="served"
+){
 pending++;
+}
 
 });
- 
 
-  document.getElementById("stats").innerHTML=`
+document.getElementById("stats").innerHTML=`
 
 <div class="stat-card" onclick="openRevenue()">
-  <h2>₹${revenue}</h2>
-  <p>Revenue Today</p>
+<h2>₹${revenue}</h2>
+<p>Revenue Today</p>
 </div>
 
-<div class="stat-card" onclick="openHistory()">
-  <h2>${orders.length}</h2>
-  <p>Total Orders</p>
+<div class="stat-card" onclick="showSection('orderManagement')">
+<h2>${orders.length}</h2>
+<p>Today Orders</p>
 </div>
 
 <div class="stat-card" onclick="openCompleted()">
-  <h2>${completed}</h2>
-  <p>Completed</p>
+<h2>${completed}</h2>
+<p>Completed Today</p>
 </div>
 
 <div class="stat-card" onclick="openActive()">
-  <h2>${pending}</h2>
-  <p>Active Orders</p>
+<h2>${pending}</h2>
+<p>Active Orders</p>
+</div>
+
+<div class="stat-card" onclick="openHistory()">
+<h2>${historyOrders ? historyOrders.length : 0}</h2>
+<p>Order History</p>
 </div>
 
 `;
+
 }
 
 /* ===== WAITER ===== */
