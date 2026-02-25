@@ -285,8 +285,15 @@ input{
 
 <!-- REVENUE -->
 <div id="revenueSection" class="section">
+
 <h3>💰 Revenue Breakdown</h3>
+
+<button onclick="loadRevenue('today')">Today</button>
+<button onclick="loadRevenue('month')">This Month</button>
+<button onclick="loadRevenue('all')">All Time</button>
+
 <div id="revenueBox"></div>
+
 </div>
 <script>
 const SUPABASE_URL = "https://xtzpxtlqmvpdcrddbbfu.supabase.co";
@@ -1158,22 +1165,49 @@ async function loadHistory(){
 
 /* REVENUE */
 async function openRevenue(){
-
 showSection("revenueSection")
+loadRevenue("today")
 
-const {data:orders}=await sb
+}
+async function loadRevenue(type){
+
+let query = sb
 .from("orders")
 .select("*")
 .eq("restaurant_id",RESTAURANT_ID)
 .eq("status","billed")
+
+const now = new Date()
+
+if(type==="today"){
+
+const start=new Date()
+start.setHours(0,0,0,0)
+
+query=query.gte("created_at",start.toISOString())
+
+}
+
+if(type==="month"){
+
+const start=new Date(now.getFullYear(),now.getMonth(),1)
+
+query=query.gte("created_at",start.toISOString())
+
+}
+
+const {data:orders}=await query
 
 const {data:dishes}=await sb
 .from("dishes")
 .select("*")
 
 let map={}
+let grandTotal=0
 
 orders.forEach(o=>{
+
+if(!o.items) return
 
 o.items.forEach(i=>{
 
@@ -1192,13 +1226,17 @@ Object.keys(map).forEach(id=>{
 
 const d=dishes.find(x=>x.id==id)
 
+if(!d) return
+
 const qty=map[id]
 
 const total=qty*d.price
 
+grandTotal+=total
+
 html+=`
 <div class="card">
-${d.name}
+<b>${d.name}</b>
 <br>
 Qty: ${qty}
 <br>
@@ -1207,6 +1245,14 @@ Revenue: ₹${total}
 `
 
 })
+
+html+=`
+<div class="card">
+<b>Total Revenue ₹${grandTotal}</b>
+</div>
+`
+
+if(html=="") html="No data"
 
 document.getElementById("revenueBox").innerHTML=html
 
