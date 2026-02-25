@@ -286,6 +286,12 @@ input{
 <!-- REVENUE -->
 <div id="revenueSection" class="section">
 <h3>💰 Revenue Breakdown</h3>
+
+<button onclick="loadRevenue('today')">Today</button>
+<button onclick="loadRevenue('week')">This Week</button>
+<button onclick="loadRevenue('month')">This Month</button>
+<button onclick="loadRevenue('all')">All Time</button>
+
 <div id="revenueBox"></div>
 </div>
 <script>
@@ -522,7 +528,7 @@ pending++;
 </div>
 
 <div class="stat-card" onclick="openHistory()">
-  <h2>${historyOrders.length}</h2>
+  <h2>Click</h2>
   <p>Order History</p>
 </div>
 <div class="stat-card" onclick="openCompleted()">
@@ -1151,58 +1157,73 @@ async function loadHistory(){
 
 /* REVENUE */
 async function openRevenue(){
-
 showSection("revenueSection")
+loadRevenue("today")
+}
 
-const {data:orders}=await sb
+async function loadRevenue(type){
+
+let query=sb
 .from("orders")
 .select("*")
 .eq("restaurant_id",RESTAURANT_ID)
 .eq("status","billed")
 
-const {data:dishes}=await sb
-.from("dishes")
-.select("*")
+const now=new Date()
+
+if(type==="today"){
+const start=new Date()
+start.setHours(0,0,0,0)
+query=query.gte("created_at",start.toISOString())
+}
+
+if(type==="week"){
+const start=new Date()
+start.setDate(now.getDate()-7)
+query=query.gte("created_at",start.toISOString())
+}
+
+if(type==="month"){
+const start=new Date()
+start.setMonth(now.getMonth())
+start.setDate(1)
+start.setHours(0,0,0,0)
+query=query.gte("created_at",start.toISOString())
+}
+
+const {data:orders}=await query
+
+const {data:dishes}=await sb.from("dishes").select("*")
 
 let map={}
 
 orders.forEach(o=>{
-
 o.items.forEach(i=>{
-
-if(!map[i.id])
-map[i.id]=0
-
+if(!map[i.id]) map[i.id]=0
 map[i.id]+=i.quantity
-
 })
-
 })
 
 let html=""
+let grand=0
 
 Object.keys(map).forEach(id=>{
-
 const d=dishes.find(x=>x.id==id)
-
 const qty=map[id]
-
 const total=qty*d.price
+grand+=total
 
 html+=`
 <div class="card">
 ${d.name}
-<br>
-Qty: ${qty}
-<br>
-Revenue: ₹${total}
-</div>
-`
-
+<br>Qty: ${qty}
+<br>Revenue: ₹${total}
+</div>`
 })
 
-document.getElementById("revenueBox").innerHTML=html
+html+=<div class="card"><b>Total Revenue ₹${grand}</b></div>
 
+document.getElementById("revenueBox").innerHTML=html
 }
   
 </script>
